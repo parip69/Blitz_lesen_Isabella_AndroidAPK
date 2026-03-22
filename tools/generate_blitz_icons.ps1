@@ -59,7 +59,7 @@ function Draw-GlowDot {
     $centerBrush.Dispose()
 }
 
-function Draw-BlitzScene {
+function Draw-LeselampeScene {
     param(
         [System.Drawing.Graphics]$Graphics,
         [int]$Size,
@@ -90,234 +90,287 @@ function Draw-BlitzScene {
     }
 
     if (-not $TransparentBackground) {
-        $shadowPath = New-RoundedRectanglePath (S 44) (S 58) (S 936) (S 936) (S 144)
-        $shadowBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(120, 4, 10, 18))
+        $shadowPath = New-RoundedRectanglePath (S 42) (S 54) (S 940) (S 940) (S 146)
+        $shadowBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(120, 5, 12, 22))
         $Graphics.FillPath($shadowBrush, $shadowPath)
         $shadowBrush.Dispose()
         $shadowPath.Dispose()
 
-        $bgPath = New-RoundedRectanglePath (S 38) (S 38) (S 948) (S 948) (S 154)
+        $bgPath = New-RoundedRectanglePath (S 36) (S 36) (S 952) (S 952) (S 156)
         $bgBrush = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
-            (P 120 60),
-            (P 880 980),
-            [System.Drawing.Color]::FromArgb(255, 86, 103, 124),
-            [System.Drawing.Color]::FromArgb(255, 13, 25, 39)
+            (P 80 30),
+            (P 930 990),
+            [System.Drawing.Color]::FromArgb(255, 88, 103, 121),
+            [System.Drawing.Color]::FromArgb(255, 12, 26, 41)
         )
         $Graphics.FillPath($bgBrush, $bgPath)
         $bgBrush.Dispose()
 
         $innerPath = New-RoundedRectanglePath (S 58) (S 58) (S 908) (S 908) (S 132)
         $innerBrush = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
-            (P 120 120),
-            (P 900 900),
-            [System.Drawing.Color]::FromArgb(255, 64, 79, 97),
-            [System.Drawing.Color]::FromArgb(255, 16, 29, 44)
+            (P 130 120),
+            (P 910 910),
+            [System.Drawing.Color]::FromArgb(255, 62, 78, 96),
+            [System.Drawing.Color]::FromArgb(255, 16, 30, 45)
         )
         $Graphics.FillPath($innerBrush, $innerPath)
         $innerBrush.Dispose()
 
         $glossPath = New-PolygonPath ([System.Drawing.PointF[]]@(
-            (P 620 48),
-            (P 980 48),
-            (P 980 420),
-            (P 840 390)
+            (P 620 42),
+            (P 980 42),
+            (P 980 410),
+            (P 844 386)
         ))
-        $glossBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(42, 255, 255, 255))
+        $glossBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(44, 255, 255, 255))
         $Graphics.FillPath($glossBrush, $glossPath)
         $glossBrush.Dispose()
         $glossPath.Dispose()
 
-        $borderPen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(180, 30, 47, 65), (S 10))
+        $borderPen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(182, 33, 49, 65), (S 10))
         $Graphics.DrawPath($borderPen, $bgPath)
         $borderPen.Dispose()
 
-        $innerPen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(70, 255, 255, 255), (S 3))
+        $innerPen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(58, 255, 255, 255), (S 3))
         $Graphics.DrawPath($innerPen, $innerPath)
         $innerPen.Dispose()
-
-        $warmGlow = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(38, 255, 215, 120))
-        $Graphics.FillEllipse($warmGlow, (S 190), (S 180), (S 640), (S 640))
-        $Graphics.FillEllipse($warmGlow, (S 320), (S 110), (S 360), (S 360))
-        $warmGlow.Dispose()
 
         $bgPath.Dispose()
         $innerPath.Dispose()
     }
-    else {
-        $softGlow = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(48, 255, 210, 110))
-        $Graphics.FillEllipse($softGlow, (S 250), (S 120), (S 520), (S 520))
-        $Graphics.FillEllipse($softGlow, (S 180), (S 470), (S 650), (S 270))
-        $softGlow.Dispose()
-    }
 
-    Draw-GlowDot -Graphics $Graphics -X (S 388) -Y (S 224) -Size (S 10) -Color ([System.Drawing.Color]::FromArgb(255, 255, 224, 148))
-    Draw-GlowDot -Graphics $Graphics -X (S 312) -Y (S 284) -Size (S 8) -Color ([System.Drawing.Color]::FromArgb(255, 255, 211, 138))
-    Draw-GlowDot -Graphics $Graphics -X (S 726) -Y (S 252) -Size (S 9) -Color ([System.Drawing.Color]::FromArgb(255, 255, 228, 160))
-    Draw-GlowDot -Graphics $Graphics -X (S 770) -Y (S 340) -Size (S 7) -Color ([System.Drawing.Color]::FromArgb(255, 255, 222, 146))
-    Draw-GlowDot -Graphics $Graphics -X (S 248) -Y (S 392) -Size (S 6) -Color ([System.Drawing.Color]::FromArgb(255, 255, 214, 132))
+    $haloBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(42, 255, 196, 96))
+    $Graphics.FillEllipse($haloBrush, (S 300), (S 188), (S 430), (S 360))
+    $haloBrush.Dispose()
 
-    $bookShadow = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(110, 2, 7, 12))
-    $Graphics.FillEllipse($bookShadow, (S 188), (S 742), (S 648), (S 132))
+    $warmHaloBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(52, 255, 211, 134))
+    $Graphics.FillEllipse($warmHaloBrush, (S 254), (S 362), (S 520), (S 310))
+    $warmHaloBrush.Dispose()
+
+    $lightCone = New-PolygonPath ([System.Drawing.PointF[]]@(
+        (P 456 284),
+        (P 584 284),
+        (P 722 646),
+        (P 316 646)
+    ))
+    $lightConeBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(54, 255, 207, 116))
+    $Graphics.FillPath($lightConeBrush, $lightCone)
+    $lightConeBrush.Dispose()
+    $lightCone.Dispose()
+
+    $bookShadow = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(130, 0, 6, 14))
+    $Graphics.FillEllipse($bookShadow, (S 176), (S 760), (S 672), (S 126))
     $bookShadow.Dispose()
 
-    $leftCoverPath = New-PolygonPath ([System.Drawing.PointF[]]@(
-        (P 168 742),
-        (P 486 690),
-        (P 514 888),
-        (P 140 910)
+    $backCoverLeft = New-PolygonPath ([System.Drawing.PointF[]]@(
+        (P 176 694),
+        (P 472 654),
+        (P 520 830),
+        (P 150 850)
     ))
-    $rightCoverPath = New-PolygonPath ([System.Drawing.PointF[]]@(
-        (P 538 690),
-        (P 856 742),
-        (P 884 910),
-        (P 510 888)
+    $backCoverRight = New-PolygonPath ([System.Drawing.PointF[]]@(
+        (P 552 654),
+        (P 848 694),
+        (P 876 850),
+        (P 504 830)
     ))
-    $leftPagesPath = New-PolygonPath ([System.Drawing.PointF[]]@(
-        (P 206 708),
-        (P 496 666),
-        (P 506 846),
-        (P 190 860)
+    $backCoverBrushLeft = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
+        (P 150 700),
+        (P 530 860),
+        [System.Drawing.Color]::FromArgb(255, 20, 48, 72),
+        [System.Drawing.Color]::FromArgb(255, 6, 20, 34)
+    )
+    $backCoverBrushRight = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
+        (P 500 650),
+        (P 876 860),
+        [System.Drawing.Color]::FromArgb(255, 28, 60, 87),
+        [System.Drawing.Color]::FromArgb(255, 7, 22, 37)
+    )
+    $Graphics.FillPath($backCoverBrushLeft, $backCoverLeft)
+    $Graphics.FillPath($backCoverBrushRight, $backCoverRight)
+    $backCoverBrushLeft.Dispose()
+    $backCoverBrushRight.Dispose()
+
+    foreach ($layer in 0..3) {
+        $offset = $layer * 15
+        $alpha = 255 - ($layer * 16)
+        $pageBrush = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
+            (P (244 - $layer * 6) (610 + $offset)),
+            (P 784 (818 + $offset)),
+            [System.Drawing.Color]::FromArgb($alpha, 255, 250, 237),
+            [System.Drawing.Color]::FromArgb($alpha, 205, 214, 223)
+        )
+        $leftPages = New-PolygonPath ([System.Drawing.PointF[]]@(
+            (P (260 - $layer * 10) (612 + $offset)),
+            (P 498 (584 + $offset / 2)),
+            (P 510 (798 + $offset)),
+            (P (224 - $layer * 8) (820 + $offset))
+        ))
+        $rightPages = New-PolygonPath ([System.Drawing.PointF[]]@(
+            (P 526 (584 + $offset / 2)),
+            (P (764 + $layer * 10) (612 + $offset)),
+            (P (800 + $layer * 8) (820 + $offset)),
+            (P 514 (798 + $offset))
+        ))
+        $Graphics.FillPath($pageBrush, $leftPages)
+        $Graphics.FillPath($pageBrush, $rightPages)
+        $pageBrush.Dispose()
+        $leftPages.Dispose()
+        $rightPages.Dispose()
+    }
+
+    $mainPagesBrush = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
+        (P 252 590),
+        (P 780 804),
+        [System.Drawing.Color]::FromArgb(255, 255, 252, 241),
+        [System.Drawing.Color]::FromArgb(255, 232, 227, 213)
+    )
+    $mainLeftPage = New-PolygonPath ([System.Drawing.PointF[]]@(
+        (P 266 594),
+        (P 500 560),
+        (P 514 790),
+        (P 228 814)
     ))
-    $rightPagesPath = New-PolygonPath ([System.Drawing.PointF[]]@(
-        (P 528 666),
-        (P 818 708),
-        (P 834 860),
-        (P 518 846)
+    $mainRightPage = New-PolygonPath ([System.Drawing.PointF[]]@(
+        (P 524 560),
+        (P 758 594),
+        (P 798 814),
+        (P 512 790)
     ))
+    $Graphics.FillPath($mainPagesBrush, $mainLeftPage)
+    $Graphics.FillPath($mainPagesBrush, $mainRightPage)
+    $mainPagesBrush.Dispose()
 
-    $leftCoverBrush = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
-        (P 150 740),
-        (P 520 920),
-        [System.Drawing.Color]::FromArgb(255, 46, 119, 223),
-        [System.Drawing.Color]::FromArgb(255, 14, 61, 145)
-    )
-    $rightCoverBrush = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
-        (P 500 680),
-        (P 880 920),
-        [System.Drawing.Color]::FromArgb(255, 37, 102, 205),
-        [System.Drawing.Color]::FromArgb(255, 9, 49, 122)
-    )
-    $Graphics.FillPath($leftCoverBrush, $leftCoverPath)
-    $Graphics.FillPath($rightCoverBrush, $rightCoverPath)
-    $leftCoverBrush.Dispose()
-    $rightCoverBrush.Dispose()
-
-    $pageBrush = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
-        (P 240 650),
-        (P 790 870),
-        [System.Drawing.Color]::FromArgb(255, 255, 252, 244),
-        [System.Drawing.Color]::FromArgb(255, 223, 228, 236)
-    )
-    $Graphics.FillPath($pageBrush, $leftPagesPath)
-    $Graphics.FillPath($pageBrush, $rightPagesPath)
-    $pageBrush.Dispose()
-
-    $pageShade = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(38, 105, 118, 138))
-    $Graphics.FillEllipse($pageShade, (S 250), (S 684), (S 520), (S 140))
-    $pageShade.Dispose()
-
-    $spineBrush = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
-        (P 470 840),
-        (P 560 940),
-        [System.Drawing.Color]::FromArgb(255, 8, 45, 115),
-        [System.Drawing.Color]::FromArgb(255, 20, 86, 186)
-    )
-    $Graphics.FillEllipse($spineBrush, (S 414), (S 858), (S 188), (S 82))
-    $spineBrush.Dispose()
-
-    $highlightPen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(120, 255, 255, 255), (S 7))
-    $Graphics.DrawLine($highlightPen, (S 196), (S 744), (S 458), (S 706))
-    $Graphics.DrawLine($highlightPen, (S 560), (S 706), (S 820), (S 744))
-    $highlightPen.Dispose()
-
-    $pageLinePen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(58, 144, 151, 167), (S 4))
-    foreach ($line in 0..4) {
-        $yLeft = S (734 + ($line * 22))
-        $yRight = S (720 + ($line * 18))
-        $Graphics.DrawLine($pageLinePen, (S 248), $yLeft, (S 434), $yRight)
-        $Graphics.DrawLine($pageLinePen, (S 596), $yRight, (S 776), $yLeft)
+    $pageLinePen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(70, 181, 146, 102), (S 3))
+    foreach ($line in 0..6) {
+        $yTop = 636 + ($line * 20)
+        $Graphics.DrawLine($pageLinePen, (S 306), (S $yTop), (S 456), (S ($yTop + 18)))
+        $Graphics.DrawLine($pageLinePen, (S 564), (S ($yTop + 18)), (S 714), (S $yTop))
     }
     $pageLinePen.Dispose()
 
-    $edgePen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(120, 170, 181, 197), (S 3))
-    $Graphics.DrawPath($edgePen, $leftPagesPath)
-    $Graphics.DrawPath($edgePen, $rightPagesPath)
-    $Graphics.DrawPath($edgePen, $leftCoverPath)
-    $Graphics.DrawPath($edgePen, $rightCoverPath)
-    $edgePen.Dispose()
+    $pageBorderPen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(118, 166, 174, 183), (S 3))
+    $Graphics.DrawPath($pageBorderPen, $mainLeftPage)
+    $Graphics.DrawPath($pageBorderPen, $mainRightPage)
+    $Graphics.DrawPath($pageBorderPen, $backCoverLeft)
+    $Graphics.DrawPath($pageBorderPen, $backCoverRight)
+    $pageBorderPen.Dispose()
 
-    $spinePen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(180, 21, 64, 142), (S 4))
-    $Graphics.DrawArc($spinePen, (S 414), (S 858), (S 188), (S 82), 0, 180)
-    $spinePen.Dispose()
+    $centerFoldPen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(120, 106, 114, 132), (S 4))
+    $Graphics.DrawLine($centerFoldPen, (S 512), (S 566), (S 512), (S 792))
+    $centerFoldPen.Dispose()
 
-    $creasePen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(110, 162, 171, 184), (S 4))
-    $Graphics.DrawLine($creasePen, (S 510), (S 674), (S 512), (S 850))
-    $creasePen.Dispose()
-
-    $boltShadowPath = New-PolygonPath ([System.Drawing.PointF[]]@(
-        (P 456 160),
-        (P 650 182),
-        (P 588 416),
-        (P 756 420),
-        (P 528 810),
-        (P 590 542),
-        (P 430 540)
+    $bookmarkLeft = New-PolygonPath ([System.Drawing.PointF[]]@(
+        (P 318 774),
+        (P 372 774),
+        (P 372 902),
+        (P 344 878),
+        (P 318 902)
     ))
-    $boltShadowBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(62, 92, 44, 0))
-    $Graphics.FillPath($boltShadowBrush, $boltShadowPath)
-    $boltShadowBrush.Dispose()
-
-    $boltGlowPath = New-PolygonPath ([System.Drawing.PointF[]]@(
-        (P 430 134),
-        (P 628 154),
-        (P 560 396),
-        (P 732 398),
-        (P 510 792),
-        (P 566 520),
-        (P 406 518)
+    $bookmarkMid = New-PolygonPath ([System.Drawing.PointF[]]@(
+        (P 404 776),
+        (P 460 776),
+        (P 460 896),
+        (P 432 872),
+        (P 404 896)
     ))
-    $boltGlowBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(44, 255, 214, 114))
-    $Graphics.FillPath($boltGlowBrush, $boltGlowPath)
-    $boltGlowBrush.Dispose()
-
-    $boltPath = New-PolygonPath ([System.Drawing.PointF[]]@(
-        (P 438 136),
-        (P 638 158),
-        (P 566 410),
-        (P 744 410),
-        (P 514 804),
-        (P 572 524),
-        (P 412 524)
+    $bookmarkRight = New-PolygonPath ([System.Drawing.PointF[]]@(
+        (P 592 774),
+        (P 650 774),
+        (P 650 904),
+        (P 621 878),
+        (P 592 904)
     ))
-    $boltBrush = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
-        (P 458 120),
-        (P 664 840),
-        [System.Drawing.Color]::FromArgb(255, 255, 250, 229),
-        [System.Drawing.Color]::FromArgb(255, 247, 184, 53)
+    $bookmarkBrushLeft = [System.Drawing.Drawing2D.LinearGradientBrush]::new((P 318 776), (P 372 902), [System.Drawing.Color]::FromArgb(255, 224, 142, 61), [System.Drawing.Color]::FromArgb(255, 145, 76, 28))
+    $bookmarkBrushMid = [System.Drawing.Drawing2D.LinearGradientBrush]::new((P 404 776), (P 460 896), [System.Drawing.Color]::FromArgb(255, 204, 98, 73), [System.Drawing.Color]::FromArgb(255, 132, 51, 47))
+    $bookmarkBrushRight = [System.Drawing.Drawing2D.LinearGradientBrush]::new((P 592 776), (P 650 904), [System.Drawing.Color]::FromArgb(255, 58, 181, 244), [System.Drawing.Color]::FromArgb(255, 17, 106, 168))
+    $Graphics.FillPath($bookmarkBrushLeft, $bookmarkLeft)
+    $Graphics.FillPath($bookmarkBrushMid, $bookmarkMid)
+    $Graphics.FillPath($bookmarkBrushRight, $bookmarkRight)
+    $bookmarkBrushLeft.Dispose()
+    $bookmarkBrushMid.Dispose()
+    $bookmarkBrushRight.Dispose()
+
+    $spineBrush = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
+        (P 452 828),
+        (P 572 908),
+        [System.Drawing.Color]::FromArgb(255, 34, 31, 38),
+        [System.Drawing.Color]::FromArgb(255, 10, 18, 29)
     )
-    $Graphics.FillPath($boltBrush, $boltPath)
-    $boltBrush.Dispose()
+    $Graphics.FillEllipse($spineBrush, (S 448), (S 796), (S 128), (S 60))
+    $spineBrush.Dispose()
 
-    $boltHighlightPen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(160, 255, 255, 245), (S 8))
-    $Graphics.DrawLine($boltHighlightPen, (S 500), (S 182), (S 598), (S 196))
-    $Graphics.DrawLine($boltHighlightPen, (S 612), (S 204), (S 544), (S 390))
-    $boltHighlightPen.Dispose()
+    $lampArmPen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(255, 56, 42, 34), (S 24))
+    $lampArmPen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
+    $lampArmPen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
+    $Graphics.DrawBezier($lampArmPen, (P 316 560), (P 286 368), (P 286 160), (P 484 176))
+    $lampArmPen.Dispose()
 
-    $boltEdgePen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(220, 208, 124, 22), (S 10))
-    $Graphics.DrawPath($boltEdgePen, $boltPath)
-    $boltEdgePen.Dispose()
+    $lampArmHighlight = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(150, 162, 123, 85), (S 8))
+    $lampArmHighlight.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
+    $lampArmHighlight.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
+    $Graphics.DrawBezier($lampArmHighlight, (P 322 554), (P 294 368), (P 294 172), (P 478 184))
+    $lampArmHighlight.Dispose()
 
-    $boltWarmPen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(84, 255, 227, 132), (S 18))
-    $Graphics.DrawPath($boltWarmPen, $boltPath)
-    $boltWarmPen.Dispose()
+    $mountBrush = [System.Drawing.Drawing2D.LinearGradientBrush]::new((P 290 502), (P 356 566), [System.Drawing.Color]::FromArgb(255, 80, 63, 51), [System.Drawing.Color]::FromArgb(255, 37, 25, 20))
+    $Graphics.FillRectangle($mountBrush, (S 286), (S 506), (S 56), (S 46))
+    $mountBrush.Dispose()
+    $mountPen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(200, 143, 112, 84), (S 4))
+    $Graphics.DrawRectangle($mountPen, (S 286), (S 506), (S 56), (S 46))
+    $mountPen.Dispose()
 
-    $leftCoverPath.Dispose()
-    $rightCoverPath.Dispose()
-    $leftPagesPath.Dispose()
-    $rightPagesPath.Dispose()
-    $boltShadowPath.Dispose()
-    $boltGlowPath.Dispose()
-    $boltPath.Dispose()
+    $shadeBrush = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
+        (P 432 120),
+        (P 626 304),
+        [System.Drawing.Color]::FromArgb(255, 43, 55, 66),
+        [System.Drawing.Color]::FromArgb(255, 8, 17, 28)
+    )
+    $Graphics.FillEllipse($shadeBrush, (S 392), (S 118), (S 252), (S 204))
+    $shadeBrush.Dispose()
+
+    $shadePen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(210, 20, 29, 39), (S 6))
+    $Graphics.DrawEllipse($shadePen, (S 392), (S 118), (S 252), (S 204))
+    $shadePen.Dispose()
+
+    $openingBrush = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
+        (P 430 244),
+        (P 616 324),
+        [System.Drawing.Color]::FromArgb(255, 255, 207, 121),
+        [System.Drawing.Color]::FromArgb(255, 143, 85, 34)
+    )
+    $Graphics.FillEllipse($openingBrush, (S 432), (S 232), (S 186), (S 76))
+    $openingBrush.Dispose()
+
+    $bulbGlow = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(100, 255, 227, 140))
+    $Graphics.FillEllipse($bulbGlow, (S 448), (S 176), (S 140), (S 140))
+    $Graphics.FillEllipse($bulbGlow, (S 480), (S 206), (S 78), (S 78))
+    $bulbGlow.Dispose()
+
+    $bulbCore = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 255, 248, 206))
+    $Graphics.FillEllipse($bulbCore, (S 488), (S 206), (S 62), (S 62))
+    $bulbCore.Dispose()
+
+    $shadeRimPen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(215, 208, 151, 79), (S 5))
+    $Graphics.DrawEllipse($shadeRimPen, (S 432), (S 232), (S 186), (S 76))
+    $shadeRimPen.Dispose()
+
+    $topCapBrush = [System.Drawing.Drawing2D.LinearGradientBrush]::new((P 486 98), (P 538 142), [System.Drawing.Color]::FromArgb(255, 44, 58, 70), [System.Drawing.Color]::FromArgb(255, 10, 18, 28))
+    $Graphics.FillEllipse($topCapBrush, (S 500), (S 90), (S 38), (S 44))
+    $topCapBrush.Dispose()
+
+    Draw-GlowDot -Graphics $Graphics -X (S 456) -Y (S 332) -Size (S 8) -Color ([System.Drawing.Color]::FromArgb(255, 255, 195, 93))
+    Draw-GlowDot -Graphics $Graphics -X (S 512) -Y (S 360) -Size (S 8) -Color ([System.Drawing.Color]::FromArgb(255, 255, 197, 99))
+    Draw-GlowDot -Graphics $Graphics -X (S 566) -Y (S 338) -Size (S 7) -Color ([System.Drawing.Color]::FromArgb(255, 255, 190, 88))
+    Draw-GlowDot -Graphics $Graphics -X (S 602) -Y (S 396) -Size (S 6) -Color ([System.Drawing.Color]::FromArgb(255, 255, 179, 78))
+    Draw-GlowDot -Graphics $Graphics -X (S 430) -Y (S 404) -Size (S 6) -Color ([System.Drawing.Color]::FromArgb(255, 255, 187, 89))
+
+    $backCoverLeft.Dispose()
+    $backCoverRight.Dispose()
+    $mainLeftPage.Dispose()
+    $mainRightPage.Dispose()
+    $bookmarkLeft.Dispose()
+    $bookmarkMid.Dispose()
+    $bookmarkRight.Dispose()
 }
 
 function New-IconBitmap {
@@ -328,7 +381,7 @@ function New-IconBitmap {
 
     $bitmap = [System.Drawing.Bitmap]::new($Size, $Size)
     $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-    Draw-BlitzScene -Graphics $graphics -Size $Size -TransparentBackground:$TransparentBackground
+    Draw-LeselampeScene -Graphics $graphics -Size $Size -TransparentBackground:$TransparentBackground
     $graphics.Dispose()
     return $bitmap
 }
@@ -399,4 +452,4 @@ Save-ScaledBitmap -Source $foregroundIcon -Size 432 -Path (Join-Path $ProjectRoo
 $fullIcon.Dispose()
 $foregroundIcon.Dispose()
 
-Write-Host "Blitz-Icons erfolgreich erzeugt."
+Write-Host "Leselampen-Icons erfolgreich erzeugt."

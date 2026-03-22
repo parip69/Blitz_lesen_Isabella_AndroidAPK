@@ -1,3 +1,4 @@
+import java.nio.charset.StandardCharsets
 import java.util.Properties
 
 plugins {
@@ -14,7 +15,44 @@ val versionProperties = Properties().apply {
     }
 }
 val currentVersion = versionProperties.getProperty("VERSION_CODE")?.toIntOrNull() ?: 1
-var versionIncremented = false
+val backupDirectory = rootProject.file("Privat")
+var buildArtifactsFinalized = false
+
+fun backupVersionedArtifacts(version: Int) {
+    backupDirectory.mkdirs()
+
+    val sourceHtml = rootProject.file("app/src/main/assets/index.html")
+    if (sourceHtml.exists()) {
+        val versionedHtml = sourceHtml.readText(StandardCharsets.UTF_8)
+            .replace("""<span id="appVersion">-</span>""", """<span id="appVersion">$version</span>""")
+        rootProject.file("Privat/Blitzlesen_v$version.html")
+            .writeText(versionedHtml, StandardCharsets.UTF_8)
+    }
+
+    val apkOutputDirectory = rootProject.file("app/build/outputs/apk")
+    if (apkOutputDirectory.exists()) {
+        apkOutputDirectory.walkTopDown()
+            .filter { file ->
+                file.isFile &&
+                    file.extension.equals("apk", ignoreCase = true) &&
+                    file.name.contains("-v$version")
+            }
+            .forEach { apkFile ->
+                apkFile.copyTo(rootProject.file("Privat/${apkFile.name}"), overwrite = true)
+            }
+    }
+}
+
+fun finalizeVersionedBuild(version: Int) {
+    if (buildArtifactsFinalized) return
+
+    buildArtifactsFinalized = true
+    backupVersionedArtifacts(version)
+    versionProperties.setProperty("VERSION_CODE", (version + 1).toString())
+    versionPropertiesFile.writer().use { writer ->
+        versionProperties.store(writer, "Naechste Build-Version")
+    }
+}
 
 android {
     namespace = "de.parip69.blitzlesen"
@@ -70,13 +108,7 @@ dependencies {
 tasks.configureEach {
     if (name.matches(Regex("assemble[A-Z].+")) || name.matches(Regex("bundle[A-Z].+"))) {
         doLast {
-            if (!versionIncremented) {
-                versionIncremented = true
-                versionProperties.setProperty("VERSION_CODE", (currentVersion + 1).toString())
-                versionPropertiesFile.writer().use { writer ->
-                    versionProperties.store(writer, "Naechste Build-Version")
-                }
-            }
+            finalizeVersionedBuild(currentVersion)
         }
     }
 }
