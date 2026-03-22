@@ -1,7 +1,20 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
+
+val versionPropertiesFile = rootProject.file("version.properties")
+val versionProperties = Properties().apply {
+    if (versionPropertiesFile.exists()) {
+        versionPropertiesFile.inputStream().use(::load)
+    } else {
+        setProperty("VERSION_CODE", "1")
+    }
+}
+val currentVersion = versionProperties.getProperty("VERSION_CODE")?.toIntOrNull() ?: 1
+var versionIncremented = false
 
 android {
     namespace = "de.parip69.blitzlesen"
@@ -11,8 +24,8 @@ android {
         applicationId = "de.parip69.blitzlesen"
         minSdk = 24
         targetSdk = 35
-        versionCode = 8
-        versionName = "8"
+        versionCode = currentVersion
+        versionName = currentVersion.toString()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -34,6 +47,7 @@ android {
         jvmTarget = "17"
     }
     buildFeatures {
+        buildConfig = true
         viewBinding = true
     }
 
@@ -51,4 +65,18 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.activity:activity-ktx:1.10.0")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+}
+
+tasks.configureEach {
+    if (name.matches(Regex("assemble[A-Z].+")) || name.matches(Regex("bundle[A-Z].+"))) {
+        doLast {
+            if (!versionIncremented) {
+                versionIncremented = true
+                versionProperties.setProperty("VERSION_CODE", (currentVersion + 1).toString())
+                versionPropertiesFile.writer().use { writer ->
+                    versionProperties.store(writer, "Naechste Build-Version")
+                }
+            }
+        }
+    }
 }

@@ -20,6 +20,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import de.parip69.blitzlesen.databinding.ActivityMainBinding
 import java.io.ByteArrayInputStream
+import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
 
@@ -125,6 +126,16 @@ class MainActivity : AppCompatActivity() {
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
+                val versionScript = """
+                    (function() {
+                        var version = ${JSONObject.quote(BuildConfig.VERSION_NAME)};
+                        var versionEl = document.getElementById('appVersion');
+                        if (versionEl) {
+                            versionEl.textContent = version;
+                        }
+                    })();
+                """.trimIndent()
+                view?.evaluateJavascript(versionScript, null)
                 binding.swipeRefresh.isRefreshing = false
             }
 
