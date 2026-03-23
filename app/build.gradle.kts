@@ -1,4 +1,3 @@
-import java.nio.charset.StandardCharsets
 import java.util.Properties
 
 plugins {
@@ -12,47 +11,15 @@ val versionProperties = Properties().apply {
         versionPropertiesFile.inputStream().use(::load)
     } else {
         setProperty("VERSION_CODE", "1")
-    }
-}
-val currentVersion = versionProperties.getProperty("VERSION_CODE")?.toIntOrNull() ?: 1
-val backupDirectory = rootProject.file("Privat")
-var buildArtifactsFinalized = false
-
-fun backupVersionedArtifacts(version: Int) {
-    backupDirectory.mkdirs()
-
-    val sourceHtml = rootProject.file("app/src/main/assets/index.html")
-    if (sourceHtml.exists()) {
-        val versionedHtml = sourceHtml.readText(StandardCharsets.UTF_8)
-            .replace("""<span id="appVersion">-</span>""", """<span id="appVersion">$version</span>""")
-        rootProject.file("Privat/Blitzlesen_v$version.html")
-            .writeText(versionedHtml, StandardCharsets.UTF_8)
-    }
-
-    val apkOutputDirectory = rootProject.file("app/build/outputs/apk")
-    if (apkOutputDirectory.exists()) {
-        apkOutputDirectory.walkTopDown()
-            .filter { file ->
-                file.isFile &&
-                    file.extension.equals("apk", ignoreCase = true) &&
-                    file.name.contains("-v$version")
-            }
-            .forEach { apkFile ->
-                apkFile.copyTo(rootProject.file("Privat/${apkFile.name}"), overwrite = true)
-            }
+        setProperty("VERSION_NAME", "1")
     }
 }
 
-fun finalizeVersionedBuild(version: Int) {
-    if (buildArtifactsFinalized) return
-
-    buildArtifactsFinalized = true
-    backupVersionedArtifacts(version)
-    versionProperties.setProperty("VERSION_CODE", (version + 1).toString())
-    versionPropertiesFile.writer().use { writer ->
-        versionProperties.store(writer, "Naechste Build-Version")
-    }
-}
+val currentVersionCode = versionProperties.getProperty("VERSION_CODE")?.toIntOrNull() ?: 1
+val currentVersionName = versionProperties.getProperty("VERSION_NAME")
+    ?.trim()
+    ?.takeIf { it.isNotEmpty() }
+    ?: currentVersionCode.toString()
 
 android {
     namespace = "de.parip69.blitzlesen"
@@ -62,8 +29,8 @@ android {
         applicationId = "de.parip69.blitzlesen"
         minSdk = 24
         targetSdk = 35
-        versionCode = currentVersion
-        versionName = currentVersion.toString()
+        versionCode = currentVersionCode
+        versionName = currentVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -92,7 +59,7 @@ android {
     applicationVariants.all {
         outputs.all {
             val output = this as com.android.build.gradle.internal.api.ApkVariantOutputImpl
-            output.outputFileName = "BlitzLesen-v${versionName}.apk"
+            output.outputFileName = "BlitzLesen-v${currentVersionName}.apk"
         }
     }
 }
@@ -103,12 +70,4 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.activity:activity-ktx:1.10.0")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
-}
-
-tasks.configureEach {
-    if (name.matches(Regex("assemble[A-Z].+")) || name.matches(Regex("bundle[A-Z].+"))) {
-        doLast {
-            finalizeVersionedBuild(currentVersion)
-        }
-    }
 }

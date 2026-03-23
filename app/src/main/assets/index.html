@@ -1,5 +1,5 @@
 <!--
-GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella_AndroidAPK
+GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
 -->
 <!DOCTYPE html>
 <html lang="de">
@@ -7,13 +7,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella_AndroidAPK
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Blitz lesen</title>
-  <meta name="theme-color" content="#152235" />
-  <meta name="apple-mobile-web-app-title" content="Blitz lesen" />
-  <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png" />
+  <title>Wort‑ & Satz‑Abspieler</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -654,6 +648,21 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella_AndroidAPK
 
         const STORAGE_KEY = 'wortabspieler.settings.v13';
         const TIMER_LABEL = 'Lesezeit';
+        const footerNote = $('.footer-note');
+
+        function applyFooterVersion(version) {
+          if (!footerNote || !version) return;
+          footerNote.setAttribute('data-app-version', String(version));
+          const footerLine = footerNote.querySelector('.footer-line');
+          if (!footerLine) return;
+          footerLine.innerHTML = 'Vermerk: Blitzlesen-Training fuer. ver <span id="appVersion">10</span>';
+          const versionEl = footerLine.querySelector('#appVersion');
+          if (versionEl) versionEl.textContent = String(version);
+        }
+
+        window.__applyBlitzVersion = applyFooterVersion;
+        const initialFooterVersion = footerNote ? footerNote.getAttribute('data-app-version') : '';
+        if (initialFooterVersion) applyFooterVersion(initialFooterVersion);
 
         const DEFAULT_WORDS = [
           'der', 'die', 'und', 'in', 'den', 'von', 'zu', 'das', 'mit', 'sich', 'des', 'auf', 'für', 'ist', 'im', 'dem', 'nicht', 'ein', 'eine', 'als', 'auch', 'es', 'an', 'werden', 'aus', 'er', 'hat', 'dass', 'ich', 'sie', 'nach', 'wird', 'bei', 'einer', 'oder', 'aber', 'vor', 'zur', 'noch', 'wie', 'einem', 'am', 'wenn', 'nur', 'war', 'sein', 'wir', 'man', 'was', 'so', 'kann', 'doch', 'um', 'über', 'da', 'bis', 'mehr', 'keine', 'schon', 'mir', 'dir', 'du', 'ihr', 'uns', 'mich', 'diese', 'dieser', 'dieses', 'wer', 'wo', 'hier', 'dort', 'heute', 'morgen', 'gestern', 'ja', 'nein'
@@ -1044,8 +1053,8 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella_AndroidAPK
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', onReady); else onReady();
     })();
   </script>
-  <footer class="footer-note">
-    <span class="footer-line">Blitzlesen-Training ver <span id="appVersion">-</span></span>
+  <footer class="footer-note" data-app-version="10">
+    <span class="footer-line">Vermerk: Blitzlesen‑Training für. ver 1</span>
     <span class="footer-name" role="button" tabindex="0">❤️ Isabella Bachner ❤️</span>
   </footer>
 </body>

@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.view.View
 import android.webkit.ConsoleMessage
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -18,6 +17,10 @@ import android.webkit.WebViewClient
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import de.parip69.blitzlesen.databinding.ActivityMainBinding
 import java.io.ByteArrayInputStream
 import org.json.JSONObject
@@ -26,6 +29,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private var fileUploadCallback: ValueCallback<Array<Uri>>? = null
+    private var latestBottomInsetPx: Int = 0
 
     private val fileChooserLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -39,13 +43,17 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        hideSystemBars()
 
-        window.decorView.systemUiVisibility = (
-            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-        )
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            latestBottomInsetPx = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            applyPageRuntimeState()
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.root)
 
         configureWebView(binding.webView)
         binding.webView.loadUrl("file:///android_asset/index.html")
@@ -63,6 +71,18 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+    }
+
+    override fun onResume() {
+        super.onResume()
+        hideSystemBars()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            hideSystemBars()
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -126,16 +146,7 @@ class MainActivity : AppCompatActivity() {
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                val versionScript = """
-                    (function() {
-                        var version = ${JSONObject.quote(BuildConfig.VERSION_NAME)};
-                        var versionEl = document.getElementById('appVersion');
-                        if (versionEl) {
-                            versionEl.textContent = version;
-                        }
-                    })();
-                """.trimIndent()
-                view?.evaluateJavascript(versionScript, null)
+                applyPageRuntimeState()
                 binding.swipeRefresh.isRefreshing = false
             }
 
@@ -178,6 +189,42 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return if (mimeTypes.isEmpty()) arrayOf("*/*") else mimeTypes.toTypedArray()
+    }
+
+    private fun applyPageRuntimeState() {
+        if (!::binding.isInitialized) return
+        val runtimeScript = """
+            (function() {
+                var version = ${JSONObject.quote(BuildConfig.VERSION_NAME)};
+                var footer = document.querySelector('.footer-note');
+                if (footer) {
+                    footer.setAttribute('data-app-version', version);
+                }
+                if (typeof window.__applyBlitzVersion === 'function') {
+                    window.__applyBlitzVersion(version);
+                } else {
+                    var versionEl = document.getElementById('appVersion');
+                    if (versionEl) {
+                        versionEl.textContent = version;
+                    }
+                }
+                var root = document.documentElement;
+                root.style.setProperty('--android-bottom-inset', '${latestBottomInsetPx}px');
+                root.style.setProperty('--bottom-safe-space', '${latestBottomInsetPx}px');
+                if (typeof window.__updateBlitzLayout === 'function') {
+                    window.__updateBlitzLayout();
+                }
+            })();
+        """.trimIndent()
+        binding.webView.evaluateJavascript(runtimeScript, null)
+    }
+
+    private fun hideSystemBars() {
+        if (!::binding.isInitialized) return
+        val controller = WindowCompat.getInsetsController(window, binding.root)
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.hide(WindowInsetsCompat.Type.systemBars())
     }
 
     override fun onDestroy() {
