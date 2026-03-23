@@ -224,6 +224,66 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
       display: none !important
     }
 
+    .html-export-fab {
+      position: fixed;
+      left: 12px;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + var(--android-bottom-inset, 0px) + 12px);
+      z-index: 9800;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, .14);
+      background: rgba(11, 18, 32, .70);
+      color: rgba(229, 231, 235, .92);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      cursor: pointer;
+      opacity: .34;
+      transition: opacity .18s ease, transform .18s ease, background .18s ease, border-color .18s ease
+    }
+
+    .html-export-fab:hover,
+    .html-export-fab:focus-visible {
+      opacity: .95;
+      transform: translateY(-1px);
+      background: rgba(15, 23, 42, .94);
+      border-color: rgba(245, 158, 11, .42)
+    }
+
+    .html-export-fab:focus-visible {
+      outline: 2px solid rgba(245, 158, 11, .55);
+      outline-offset: 2px
+    }
+
+    .html-export-fab.is-busy {
+      opacity: .88;
+      cursor: progress
+    }
+
+    .html-export-fab .html-export-badge {
+      min-width: 42px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, .18);
+      color: #fde68a;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-align: center
+    }
+
+    .html-export-fab .html-export-label {
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap
+    }
+
+    .html-export-fab[hidden] {
+      display: none !important
+    }
+
     /* Vollbild-Overlay */
     .overlay {
       position: fixed;
@@ -448,6 +508,13 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
     </section>
   </div>
 
+  <button id="exportHtmlFab" class="html-export-fab" type="button" hidden
+    title="Index HTML mit den aktuellen Einstellungen herunterladen"
+    aria-label="Index HTML exportieren">
+    <span class="html-export-badge">HTML</span>
+    <span class="html-export-label">Export</span>
+  </button>
+
   <!-- Vollbild Overlay -->
   <div id="overlay" class="overlay hidden" aria-hidden="true">
     <div id="overlayOutput" class="bigout overlay-out"><span id="overlayText">…</span><span class="len-counter"
@@ -643,12 +710,17 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         const helpOpen = need('.footer-name', 'helpOpen');
         const manualEl = need('#manual', 'manual');
         const manualClose = need('#manualClose', 'manualClose');
+        const exportHtmlBtn = need('#exportHtmlFab', 'exportHtmlFab');
 
         if (!inputEl || !outputBox || !countEl) { console.error('❌ Kritische Elemente fehlen – Initialisierung abgebrochen.'); return; }
 
+        const APP_NAME_FALLBACK = 'Blitz lesen';
+        const APP_VERSION_FALLBACK = '1';
         const STORAGE_KEY = 'wortabspieler.settings.v13';
         const TIMER_LABEL = 'Lesezeit';
+        const HTML_EXPORT_STATUS_MS = 3600;
         const footerNote = $('.footer-note');
+        let exportStatusResetTimer = null;
 
         function applyFooterVersion(version) {
           if (!footerNote || !version) return;
@@ -663,6 +735,238 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         window.__applyBlitzVersion = applyFooterVersion;
         const initialFooterVersion = footerNote ? footerNote.getAttribute('data-app-version') : '';
         if (initialFooterVersion) applyFooterVersion(initialFooterVersion);
+
+        function getAndroidBridge() {
+          if (window.AndroidInterface) return window.AndroidInterface;
+          if (window.AndroidDownload) return window.AndroidDownload;
+          return null;
+        }
+
+        function supportsBundledIndexHtmlExport() {
+          const androidBridge = getAndroidBridge();
+          return Boolean(
+            androidBridge
+            && typeof androidBridge.getBundledIndexHtml === 'function'
+            && typeof androidBridge.saveTextFile === 'function'
+          );
+        }
+
+        function updateBundledIndexHtmlExportVisibility() {
+          if (!exportHtmlBtn) return;
+          const supported = supportsBundledIndexHtmlExport();
+          exportHtmlBtn.hidden = !supported;
+          exportHtmlBtn.setAttribute('aria-hidden', String(!supported));
+        }
+
+        window.__updateHtmlExportButton = updateBundledIndexHtmlExportVisibility;
+
+        function sanitizeFilenamePart(value) {
+          return String(value || '')
+            .replace(/[<>:"/\\|?*\u0000-\u001f]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        }
+
+        function getCurrentAppName() {
+          try {
+            const androidBridge = getAndroidBridge();
+            if (androidBridge && typeof androidBridge.getAppDisplayName === 'function') {
+              const nativeName = String(androidBridge.getAppDisplayName() || '').trim();
+              if (nativeName) return nativeName;
+            }
+          } catch (e) {
+            console.warn('Nativer App-Name konnte nicht gelesen werden:', e);
+          }
+
+          const metaName = document.querySelector('meta[name="application-name"]')?.getAttribute('content');
+          const docTitle = document.title;
+          return String(metaName || docTitle || APP_NAME_FALLBACK).trim() || APP_NAME_FALLBACK;
+        }
+
+        function getCurrentAppVersion() {
+          try {
+            const androidBridge = getAndroidBridge();
+            if (androidBridge && typeof androidBridge.getAppVersionName === 'function') {
+              const nativeVersion = String(androidBridge.getAppVersionName() || '').trim();
+              if (nativeVersion) return nativeVersion;
+            }
+          } catch (e) {
+            console.warn('Native Versionsnummer konnte nicht gelesen werden:', e);
+          }
+
+          const footerVersion = footerNote ? String(footerNote.getAttribute('data-app-version') || '').trim() : '';
+          if (footerVersion) return footerVersion;
+
+          const htmlVersion = String(document.documentElement.getAttribute('data-app-version') || '').trim();
+          if (htmlVersion) return htmlVersion;
+
+          return APP_VERSION_FALLBACK;
+        }
+
+        function buildHtmlExportBaseName() {
+          const safeAppName = sanitizeFilenamePart(getCurrentAppName()) || APP_NAME_FALLBACK;
+          const safeVersion = sanitizeFilenamePart(getCurrentAppVersion()) || APP_VERSION_FALLBACK;
+          return `${safeAppName}_ver_${safeVersion}`;
+        }
+
+        function buildHtmlExportFilename() {
+          return `${buildHtmlExportBaseName()}.html`;
+        }
+
+        function getPortableStorageKeys() {
+          const keys = [];
+          for (let i = 0; i < localStorage.length; i += 1) {
+            const key = localStorage.key(i);
+            if (!key) continue;
+            if (key === STORAGE_KEY || key.startsWith('wortabspieler.settings.')) {
+              keys.push(key);
+            }
+          }
+          return Array.from(new Set(keys)).sort();
+        }
+
+        function buildPortableHtmlStatePayload() {
+          const selectedKeys = getPortableStorageKeys();
+          const storage = {};
+          selectedKeys.forEach((key) => {
+            const value = localStorage.getItem(key);
+            if (value !== null) {
+              storage[key] = value;
+            }
+          });
+
+          return {
+            app: getCurrentAppName(),
+            version: getCurrentAppVersion(),
+            namespace: 'wortabspieler',
+            exportedAt: new Date().toISOString(),
+            entryCount: Object.keys(storage).length,
+            selectedKeys,
+            storage,
+          };
+        }
+
+        function serializePortableHtmlPayload(payload) {
+          return JSON.stringify(payload)
+            .replace(/</g, '\\u003C')
+            .replace(/>/g, '\\u003E')
+            .replace(/&/g, '\\u0026')
+            .replace(/\u2028/g, '\\u2028')
+            .replace(/\u2029/g, '\\u2029');
+        }
+
+        function embedPortableAppStateIntoHtml(htmlText) {
+          const safeHtmlText = typeof htmlText === 'string' ? htmlText : String(htmlText ?? '');
+          if (!safeHtmlText.trim()) return safeHtmlText;
+
+          const payload = buildPortableHtmlStatePayload();
+          const storageKeys = payload && payload.storage ? Object.keys(payload.storage) : [];
+          if (storageKeys.length === 0) return safeHtmlText;
+
+          const serializedPayload = serializePortableHtmlPayload(payload);
+          const bootstrapScript =
+            `<script>(function(){const payload=${serializedPayload};` +
+            `try{const storage=window.localStorage;if(!storage||!payload||!payload.storage)return;` +
+            `const markerKey='__portableHtmlBootstrap_'+String(payload.exportedAt||'snapshot');` +
+            `if(storage.getItem(markerKey)==='1')return;` +
+            `Object.entries(payload.storage).forEach(([key,value])=>{storage.setItem(String(key),String(value));});` +
+            `storage.setItem(markerKey,'1');` +
+            `}catch(error){console.warn('Portable HTML-Daten konnten nicht initialisiert werden.',error);}})();` +
+            `<\/script>`;
+
+          if (safeHtmlText.includes('</head>')) {
+            return safeHtmlText.replace('</head>', `${bootstrapScript}\n</head>`);
+          }
+
+          if (safeHtmlText.includes('</body>')) {
+            return safeHtmlText.replace('</body>', `${bootstrapScript}\n</body>`);
+          }
+
+          return `${safeHtmlText}\n${bootstrapScript}`;
+        }
+
+        async function getBundledIndexHtmlText() {
+          const androidBridge = getAndroidBridge();
+          if (androidBridge && typeof androidBridge.getBundledIndexHtml === 'function') {
+            try {
+              const nativeHtml = String(androidBridge.getBundledIndexHtml() || '');
+              if (nativeHtml.trim()) return nativeHtml;
+            } catch (e) {
+              console.warn('Gebuendelte index.html konnte nicht gelesen werden:', e);
+            }
+          }
+
+          const currentUrl = window.location.href.split('#')[0].split('?')[0];
+          const response = await fetch(currentUrl, { cache: 'no-store' });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          return response.text();
+        }
+
+        function downloadTextFileRobust(filename, textContent) {
+          const safeFilename = String(filename || '').trim() || 'index.html';
+          const safeText = typeof textContent === 'string' ? textContent : String(textContent ?? '');
+          const androidBridge = getAndroidBridge();
+
+          if (androidBridge && typeof androidBridge.saveTextFile === 'function') {
+            return !!androidBridge.saveTextFile(safeFilename, safeText);
+          }
+
+          try {
+            const blob = new Blob([safeText], { type: 'text/html;charset=utf-8' });
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = safeFilename;
+            link.href = blobUrl;
+            link.rel = 'noopener';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => {
+              URL.revokeObjectURL(blobUrl);
+              link.remove();
+            }, 1200);
+            return true;
+          } catch (e) {
+            console.warn('Browser-Download fehlgeschlagen:', e);
+            return false;
+          }
+        }
+
+        function pushExportStatus(message) {
+          if (!statusEl) return;
+          statusEl.textContent = message;
+          if (exportStatusResetTimer) clearTimeout(exportStatusResetTimer);
+          exportStatusResetTimer = setTimeout(() => {
+            if (!running) statusEl.textContent = 'Bereit.';
+          }, HTML_EXPORT_STATUS_MS);
+        }
+
+        async function exportBundledIndexHtml() {
+          if (!exportHtmlBtn || exportHtmlBtn.disabled) return;
+          const fileName = buildHtmlExportFilename();
+
+          exportHtmlBtn.disabled = true;
+          exportHtmlBtn.classList.add('is-busy');
+          pushExportStatus(`Exportiere ${fileName} ...`);
+
+          try {
+            const htmlText = await getBundledIndexHtmlText();
+            const portableHtml = embedPortableAppStateIntoHtml(htmlText);
+            const ok = downloadTextFileRobust(fileName, portableHtml);
+            if (!ok) {
+              throw new Error('Download rueckgabewert war false');
+            }
+            pushExportStatus(`HTML exportiert: ${fileName}`);
+          } catch (e) {
+            console.warn('HTML-Export fehlgeschlagen:', e);
+            pushExportStatus('HTML-Export fehlgeschlagen.');
+          } finally {
+            exportHtmlBtn.disabled = false;
+            exportHtmlBtn.classList.remove('is-busy');
+          }
+        }
 
         const DEFAULT_WORDS = [
           'der', 'die', 'und', 'in', 'den', 'von', 'zu', 'das', 'mit', 'sich', 'des', 'auf', 'für', 'ist', 'im', 'dem', 'nicht', 'ein', 'eine', 'als', 'auch', 'es', 'an', 'werden', 'aus', 'er', 'hat', 'dass', 'ich', 'sie', 'nach', 'wird', 'bei', 'einer', 'oder', 'aber', 'vor', 'zur', 'noch', 'wie', 'einem', 'am', 'wenn', 'nur', 'war', 'sein', 'wir', 'man', 'was', 'so', 'kann', 'doch', 'um', 'über', 'da', 'bis', 'mehr', 'keine', 'schon', 'mir', 'dir', 'du', 'ihr', 'uns', 'mich', 'diese', 'dieser', 'dieses', 'wer', 'wo', 'hier', 'dort', 'heute', 'morgen', 'gestern', 'ja', 'nein'
@@ -692,6 +996,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         function updateOverlayLayout() {
           try { const bar = document.querySelector('.overlay-bar'); const isLandscape = window.matchMedia && window.matchMedia('(orientation: landscape)').matches; const offset = isLandscape ? 5 : 20; if (bar) { root.style.setProperty('--bar-height', bar.offsetHeight + 'px'); } root.style.setProperty('--bar-offset', offset + 'px'); } catch (e) { }
         }
+        window.__updateBlitzLayout = updateOverlayLayout;
 
         function migrateOld() { try { if (!localStorage.getItem(STORAGE_KEY)) { const v12 = localStorage.getItem('wortabspieler.settings.v12'); if (v12) { localStorage.setItem(STORAGE_KEY, v12); } } } catch (e) { console.warn('Migration übersprungen:', e); } }
 
@@ -1032,6 +1337,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         manualClose.addEventListener('click', closeManual);
         manualEl.addEventListener('click', (e) => { if (e.target === manualEl) closeManual(); });
         window.addEventListener('popstate', () => { if (location.hash !== '#handbuch' && !manualEl.classList.contains('hidden')) closeManual(); });
+        exportHtmlBtn.addEventListener('click', exportBundledIndexHtml);
 
         // Init
         migrateOld();
@@ -1040,6 +1346,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         parseInput();
         (function forceCloseOverlayOnLoad() { if (!overlayEl) return; overlayEl.classList.add('hidden'); overlayEl.setAttribute('aria-hidden', 'true'); document.documentElement.style.overflow = ''; try { if (location.hash === '#lesen') { history.replaceState(null, '', location.pathname + location.search); } } catch (e) { } })();
         updateOverlayLayout();
+        updateBundledIndexHtmlExportVisibility();
         if (!loaded) { saveSettings(); }
 
         // Tests (Konsolenhinweise)
