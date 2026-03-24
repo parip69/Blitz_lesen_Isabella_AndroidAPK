@@ -409,6 +409,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 var root = document.documentElement;
                 root.setAttribute('data-app-version', version);
+                root.setAttribute('data-native-app', 'android');
                 root.style.setProperty('--android-bottom-inset', '${latestBottomInsetPx}px');
                 root.style.setProperty('--bottom-safe-space', '${latestBottomInsetPx}px');
                 if (typeof window.__updateBlitzLayout === 'function') {
