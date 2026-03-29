@@ -319,6 +319,15 @@ tasks.named("preBuild").configure {
     dependsOn(syncGitHubPagesDocs)
 }
 
+tasks.matching {
+    name == "build" ||
+        name == "assemble" ||
+        name.startsWith("assemble") ||
+        name.startsWith("bundle")
+}.configureEach {
+    finalizedBy(syncGitHubPagesDocs)
+}
+
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
