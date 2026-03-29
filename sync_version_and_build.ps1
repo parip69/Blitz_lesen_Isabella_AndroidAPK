@@ -42,6 +42,24 @@ function Get-CurrentVersionCode {
     return [int]$match.Matches[0].Groups[1].Value
 }
 
+function Get-CurrentVersionName {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "Versionsdatei nicht gefunden: $Path"
+    }
+
+    $match = Select-String -Path $Path -Pattern '^\s*VERSION_NAME\s*=\s*(.+?)\s*$'
+    if (-not $match) {
+        throw "In '$Path' wurde kein gueltiger VERSION_NAME gefunden."
+    }
+
+    return $match.Matches[0].Groups[1].Value.Trim()
+}
+
 function Set-VersionProperties {
     param(
         [Parameter(Mandatory = $true)]
@@ -118,16 +136,15 @@ function Find-VersionedApk {
 
 Push-Location $scriptRoot
 try {
-    $currentVersionCode = Get-CurrentVersionCode -Path $versionFile
-    $nextVersionCode = $currentVersionCode + 1
-    $nextVersionName = $nextVersionCode.ToString()
-
-    Set-VersionProperties -Path $versionFile -VersionCode $nextVersionCode -VersionName $nextVersionName
-    Set-IndexVersion -Path $indexFile -VersionName $nextVersionName
-
-    Write-Host "Version auf $nextVersionName synchronisiert."
-
     if ($SkipBuild) {
+        $currentVersionCode = Get-CurrentVersionCode -Path $versionFile
+        $nextVersionCode = $currentVersionCode + 1
+        $nextVersionName = $nextVersionCode.ToString()
+
+        Set-VersionProperties -Path $versionFile -VersionCode $nextVersionCode -VersionName $nextVersionName
+        Set-IndexVersion -Path $indexFile -VersionName $nextVersionName
+
+        Write-Host "Version auf $nextVersionName synchronisiert."
         Write-Host "Build wurde mit -SkipBuild uebersprungen."
         return
     }
@@ -141,14 +158,17 @@ try {
         throw "Gradle-Build fehlgeschlagen."
     }
 
+    $builtVersionName = Get-CurrentVersionName -Path $versionFile
+    Write-Host "Build hat Version $builtVersionName erstellt."
+
     New-Item -ItemType Directory -Force -Path $privatDir | Out-Null
 
-    $htmlArchivePath = Join-Path $privatDir "Blitzlesen_v$nextVersionName.html"
+    $htmlArchivePath = Join-Path $privatDir "Blitzlesen_v$builtVersionName.html"
     Copy-Item -LiteralPath $indexFile -Destination $htmlArchivePath -Force
 
-    $apkFile = Find-VersionedApk -Path $apkOutputDir -VersionName $nextVersionName
+    $apkFile = Find-VersionedApk -Path $apkOutputDir -VersionName $builtVersionName
     if (-not $apkFile) {
-        throw "Es wurde keine APK mit dem Namen 'BlitzLesen-v$nextVersionName.apk' gefunden."
+        throw "Es wurde keine APK mit dem Namen 'BlitzLesen-v$builtVersionName.apk' gefunden."
     }
 
     $apkArchivePath = Join-Path $privatDir $apkFile.Name

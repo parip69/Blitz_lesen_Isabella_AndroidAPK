@@ -7,15 +7,78 @@ plugins {
 }
 
 val versionPropertiesFile = rootProject.file("version.properties")
-val versionProperties = Properties().apply {
-    if (versionPropertiesFile.exists()) {
-        versionPropertiesFile.inputStream().use(::load)
-    } else {
-        setProperty("VERSION_CODE", "1")
-        setProperty("VERSION_NAME", "1")
+val indexHtmlFile = rootProject.file("app/src/main/assets/index.html")
+
+fun loadVersionProperties(path: File): Properties {
+    return Properties().apply {
+        if (path.exists()) {
+            path.inputStream().use(::load)
+        } else {
+            setProperty("VERSION_CODE", "1")
+            setProperty("VERSION_NAME", "1")
+        }
     }
 }
 
+fun writeVersionProperties(path: File, versionCode: Int, versionName: String) {
+    val content = buildString {
+        appendLine("# Zentrale App-Version")
+        appendLine("VERSION_CODE=$versionCode")
+        appendLine("VERSION_NAME=$versionName")
+    }
+    path.writeText(content, Charsets.UTF_8)
+}
+
+fun syncHtmlFooterVersion(content: String, versionName: String, label: String): String {
+    val footerPattern = Regex("""(<footer\b[^>]*\bdata-app-version=")[^"]*(")""", RegexOption.IGNORE_CASE)
+    check(footerPattern.containsMatchIn(content)) { "$label: data-app-version wurde nicht gefunden." }
+
+    var updated = footerPattern.replace(content) {
+        "${it.groupValues[1]}$versionName${it.groupValues[2]}"
+    }
+
+    val versionSpanPattern = Regex(
+        """(<span\b[^>]*\bid="appVersion"[^>]*>)[^<]*(</span>)""",
+        RegexOption.IGNORE_CASE
+    )
+    if (versionSpanPattern.containsMatchIn(updated)) {
+        updated = versionSpanPattern.replace(updated) {
+            "${it.groupValues[1]}$versionName${it.groupValues[2]}"
+        }
+    }
+
+    return updated
+}
+
+fun syncIndexHtmlFooterVersion(path: File, versionName: String) {
+    if (!path.exists()) return
+    val content = path.readText(Charsets.UTF_8)
+    path.writeText(syncHtmlFooterVersion(content, versionName, path.path), Charsets.UTF_8)
+}
+
+fun shouldAutoIncrementVersion(taskNames: List<String>): Boolean {
+    return taskNames.any { taskName ->
+        val normalized = taskName.substringAfterLast(':').lowercase()
+        normalized == "build" ||
+            normalized == "assemble" ||
+            normalized.startsWith("assemble") ||
+            normalized.startsWith("bundle") ||
+            normalized.startsWith("install")
+    }
+}
+
+if (shouldAutoIncrementVersion(gradle.startParameter.taskNames)) {
+    val existingVersionProperties = loadVersionProperties(versionPropertiesFile)
+    val currentVersionCodeBeforeBuild = existingVersionProperties.getProperty("VERSION_CODE")?.toIntOrNull() ?: 0
+    val nextVersionCode = currentVersionCodeBeforeBuild + 1
+    val nextVersionName = nextVersionCode.toString()
+
+    writeVersionProperties(versionPropertiesFile, nextVersionCode, nextVersionName)
+    syncIndexHtmlFooterVersion(indexHtmlFile, nextVersionName)
+    logger.lifecycle("Auto-Version aktiv: $currentVersionCodeBeforeBuild -> $nextVersionName")
+}
+
+val versionProperties = loadVersionProperties(versionPropertiesFile)
 val currentVersionCode = versionProperties.getProperty("VERSION_CODE")?.toIntOrNull() ?: 1
 val currentVersionName = versionProperties.getProperty("VERSION_NAME")
     ?.trim()
@@ -100,7 +163,7 @@ val syncGitHubPagesDocsFiles = {
         .joinToString("\n---\n")
         .sha256Short()
 
-    var docsHtml = sourceHtml
+    var docsHtml = syncHtmlFooterVersion(sourceHtml, currentVersionName, "docs/index.html")
     docsHtml = docsHtml.replaceRequired(
         """    <meta name="viewport" content="width=device-width, initial-scale=1" />""",
         lines(
