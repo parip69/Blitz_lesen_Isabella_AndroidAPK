@@ -399,14 +399,6 @@ class MainActivity : AppCompatActivity() {
                 if (footer) {
                     footer.setAttribute('data-app-version', version);
                 }
-                if (typeof window.__applyBlitzVersion === 'function') {
-                    window.__applyBlitzVersion(version);
-                } else {
-                    var versionEl = document.getElementById('appVersion');
-                    if (versionEl) {
-                        versionEl.textContent = version;
-                    }
-                }
                 var root = document.documentElement;
                 root.setAttribute('data-app-version', version);
                 root.setAttribute('data-native-app', 'android');

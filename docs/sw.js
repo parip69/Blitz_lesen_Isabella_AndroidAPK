@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blitz-lesen-docs-7b7b2ec943ea';
+const CACHE_NAME = 'blitz-lesen-docs-f2a6c46dcde3';
 const CACHE_PREFIX = 'blitz-lesen-docs-';
 const PRECACHE_URLS = [
   './',

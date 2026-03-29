@@ -105,15 +105,6 @@ function Set-IndexVersion {
         [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
     )
 
-    if ($content -match 'id="appVersion"') {
-        $content = [regex]::Replace(
-            $content,
-            '(<span\b[^>]*\bid="appVersion"[^>]*>)[^<]*(</span>)',
-            ('${1}' + $VersionName + '${2}'),
-            [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
-        )
-    }
-
     Write-Utf8NoBom -Path $Path -Content $content
 }
 

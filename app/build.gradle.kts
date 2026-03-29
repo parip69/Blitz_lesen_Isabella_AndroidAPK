@@ -33,21 +33,9 @@ fun syncHtmlFooterVersion(content: String, versionName: String, label: String): 
     val footerPattern = Regex("""(<footer\b[^>]*\bdata-app-version=")[^"]*(")""", RegexOption.IGNORE_CASE)
     check(footerPattern.containsMatchIn(content)) { "$label: data-app-version wurde nicht gefunden." }
 
-    var updated = footerPattern.replace(content) {
+    return footerPattern.replace(content) {
         "${it.groupValues[1]}$versionName${it.groupValues[2]}"
     }
-
-    val versionSpanPattern = Regex(
-        """(<span\b[^>]*\bid="appVersion"[^>]*>)[^<]*(</span>)""",
-        RegexOption.IGNORE_CASE
-    )
-    if (versionSpanPattern.containsMatchIn(updated)) {
-        updated = versionSpanPattern.replace(updated) {
-            "${it.groupValues[1]}$versionName${it.groupValues[2]}"
-        }
-    }
-
-    return updated
 }
 
 fun syncIndexHtmlFooterVersion(path: File, versionName: String) {
