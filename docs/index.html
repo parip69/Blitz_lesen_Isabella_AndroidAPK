@@ -5,7 +5,22 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
 <html lang="de">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#152235" />
+    <meta name="application-name" content="Blitz lesen" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="Blitz lesen" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
     <title>Wort‑ & Satz‑Abspieler</title>
     <style>
       :root {
@@ -692,6 +707,10 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           </div>
         </div>
       </section>
+
+      <section class="card compact" id="installHintCard" hidden>
+        <div class="hint" id="installHintText"></div>
+      </section>
     </div>
 
     <!-- Vollbild Overlay -->
@@ -1009,6 +1028,8 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           const manualClose = need("#manualClose", "manualClose");
           const exportHtmlBtn = need("#exportHtmlButton", "exportHtmlButton");
           const exportHtmlNote = $("#exportHtmlNote");
+          const installHintCard = $("#installHintCard");
+          const installHintText = $("#installHintText");
 
           if (!inputEl || !outputBox || !countEl) {
             console.error(
@@ -1031,7 +1052,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             const footerLine = footerNote.querySelector(".footer-line");
             if (!footerLine) return;
             footerLine.innerHTML =
-              'Vermerk: Blitzlesen-Training fuer. ver <span id="appVersion">20</span>';
+              'Vermerk: Blitzlesen-Training fuer. ver <span id="appVersion">21</span>';
             const versionEl = footerLine.querySelector("#appVersion");
             if (versionEl) versionEl.textContent = String(version);
           }
@@ -1050,40 +1071,77 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
 
           function supportsBundledIndexHtmlExport() {
             const androidBridge = getAndroidBridge();
-            const hasNativeAndroidExport = Boolean(
+            return Boolean(
               document.documentElement.getAttribute("data-native-app") ===
                 "android" &&
               androidBridge &&
               typeof androidBridge.getBundledIndexHtml === "function" &&
               typeof androidBridge.saveTextFile === "function",
             );
-            const hasBrowserFallback = Boolean(
-              typeof window.fetch === "function" &&
-              typeof Blob !== "undefined" &&
-              typeof URL !== "undefined" &&
-              typeof URL.createObjectURL === "function",
-            );
-            return hasNativeAndroidExport || hasBrowserFallback;
           }
 
           function updateBundledIndexHtmlExportVisibility() {
             if (!exportHtmlBtn) return;
             const supported = supportsBundledIndexHtmlExport();
-            if (settingsActions) settingsActions.hidden = false;
-            exportHtmlBtn.hidden = false;
+            if (settingsActions) settingsActions.hidden = !supported;
+            exportHtmlBtn.hidden = !supported;
             exportHtmlBtn.disabled =
               !supported || exportHtmlBtn.classList.contains("is-busy");
-            exportHtmlBtn.setAttribute("aria-hidden", "false");
+            exportHtmlBtn.setAttribute("aria-hidden", String(!supported));
             exportHtmlBtn.setAttribute("aria-disabled", String(!supported));
             if (exportHtmlNote) {
-              exportHtmlNote.textContent = supported
-                ? "Speichert die originale HTML-Datei mit deinen aktuellen lokalen Einstellungen."
-                : "HTML-Export ist in dieser Umgebung gerade nicht verfuegbar.";
+              exportHtmlNote.hidden = !supported;
+              exportHtmlNote.textContent =
+                "Speichert die originale HTML-Datei mit deinen aktuellen lokalen Einstellungen.";
             }
           }
 
           window.__updateHtmlExportButton =
             updateBundledIndexHtmlExportVisibility;
+
+          function isStandaloneWebApp() {
+            const standaloneDisplay =
+              typeof window.matchMedia === "function" &&
+              window.matchMedia("(display-mode: standalone)").matches;
+            return Boolean(standaloneDisplay || window.navigator.standalone);
+          }
+
+          function getInstallHintMessage() {
+            const ua = String(window.navigator.userAgent || "");
+            const isIOS = /iPad|iPhone|iPod/i.test(ua);
+            const isAndroid = /Android/i.test(ua);
+
+            if (isStandaloneWebApp()) return "";
+            if (isIOS) {
+              return "Tipp: In Safari oeffnen und dann Teilen -> Zum Home-Bildschirm nutzen.";
+            }
+            if (isAndroid) {
+              return "Tipp: Im normalen Browser oeffnen und ueber das Menue Zum Startbildschirm oder App installieren nutzen.";
+            }
+            return "";
+          }
+
+          function updateInstallHintVisibility() {
+            if (!installHintCard || !installHintText) return;
+            const message = getInstallHintMessage();
+            installHintCard.hidden = !message;
+            installHintText.textContent = message;
+          }
+
+          async function registerBrowserServiceWorker() {
+            const isTrustedLocalhost = ["localhost", "127.0.0.1", "::1"].includes(
+              window.location.hostname,
+            );
+            if (!("serviceWorker" in navigator)) return;
+            if (!(window.isSecureContext || isTrustedLocalhost)) return;
+            try {
+              await navigator.serviceWorker.register("./sw.js");
+            } catch (e) {
+              console.warn("Service Worker konnte nicht registriert werden:", e);
+            }
+          }
+
+          window.addEventListener("appinstalled", updateInstallHintVisibility);
 
           function sanitizeFilenamePart(value) {
             return String(value || "")
@@ -2383,6 +2441,8 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           })();
           updateOverlayLayout();
           updateBundledIndexHtmlExportVisibility();
+          updateInstallHintVisibility();
+          registerBrowserServiceWorker();
           if (!loaded) {
             saveSettings();
           }
@@ -2401,7 +2461,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         else onReady();
       })();
     </script>
-    <footer class="footer-note" data-app-version="20">
+    <footer class="footer-note" data-app-version="21">
       <span class="footer-line">Vermerk: Blitzlesen‑Training für. ver 1</span>
       <span class="footer-name" role="button" tabindex="0"
         >❤️ Isabella Bachner ❤️</span
