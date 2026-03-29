@@ -1,4 +1,5 @@
 import java.util.Properties
+import java.security.MessageDigest
 
 plugins {
     id("com.android.application")
@@ -29,6 +30,13 @@ fun String.replaceRequired(oldValue: String, newValue: String, label: String): S
 fun String.insertAfterRequired(anchor: String, addition: String, label: String): String {
     check(contains(anchor)) { "syncGitHubPagesDocs: Anker nicht gefunden: $label" }
     return replace(anchor, anchor + addition)
+}
+
+fun String.sha256Short(length: Int = 12): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+        .digest(toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
+    return digest.take(length)
 }
 
 android {
@@ -84,8 +92,13 @@ val syncGitHubPagesDocsFiles = {
     docsIconsDir.mkdirs()
 
     val sourceHtml = assetsDir.file("index.html").asFile.readText(Charsets.UTF_8)
+    val sourceManifest = assetsDir.file("manifest.webmanifest").asFile.readText(Charsets.UTF_8)
+    val sourceSw = assetsDir.file("sw.js").asFile.readText(Charsets.UTF_8)
     val newline = if (sourceHtml.contains("\r\n")) "\r\n" else "\n"
     fun lines(vararg values: String): String = values.joinToString(newline)
+    val cacheVersion = listOf(currentVersionName, sourceHtml, sourceManifest, sourceSw)
+        .joinToString("\n---\n")
+        .sha256Short()
 
     var docsHtml = sourceHtml
     docsHtml = docsHtml.replaceRequired(
@@ -244,7 +257,7 @@ val syncGitHubPagesDocsFiles = {
             "            if (!(\"serviceWorker\" in navigator)) return;",
             "            if (!(window.isSecureContext || isTrustedLocalhost)) return;",
             "            try {",
-            "              await navigator.serviceWorker.register(\"./sw.js\");",
+            "              await navigator.serviceWorker.register(\"./sw.js?v=$cacheVersion\");",
             "            } catch (e) {",
             "              console.warn(\"Service Worker konnte nicht registriert werden:\", e);",
             "            }",
@@ -283,12 +296,83 @@ val syncGitHubPagesDocsFiles = {
         into(docsIconsDir)
     }
 
-    val sourceSw = assetsDir.file("sw.js").asFile.readText(Charsets.UTF_8)
-    val cachePattern = Regex("""const CACHE_NAME = '.*?';""")
-    check(cachePattern.containsMatchIn(sourceSw)) {
-        "syncGitHubPagesDocs: Cache-Name in sw.js nicht gefunden"
-    }
-    val docsSw = sourceSw.replaceFirst(cachePattern, "const CACHE_NAME = 'blitz-lesen-docs-v1';")
+    val docsSw = lines(
+        "const CACHE_NAME = 'blitz-lesen-docs-$cacheVersion';",
+        "const CACHE_PREFIX = 'blitz-lesen-docs-';",
+        "const PRECACHE_URLS = [",
+        "  './',",
+        "  './index.html',",
+        "  './manifest.webmanifest',",
+        "  './icons/icon-192.png',",
+        "  './icons/icon-512.png',",
+        "  './icons/apple-touch-icon.png'",
+        "];",
+        "",
+        "function putInCache(request, response) {",
+        "  if (!response || response.status !== 200 || response.type === 'opaque') return response;",
+        "  const copy = response.clone();",
+        "  caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => {});",
+        "  return response;",
+        "}",
+        "",
+        "function networkFirst(request) {",
+        "  return fetch(request)",
+        "    .then(response => putInCache(request, response))",
+        "    .catch(() => caches.match(request));",
+        "}",
+        "",
+        "function cacheFirst(request) {",
+        "  return caches.match(request).then(cached => {",
+        "    if (cached) return cached;",
+        "    return fetch(request).then(response => putInCache(request, response));",
+        "  });",
+        "}",
+        "",
+        "function isNavigationRequest(request) {",
+        "  return request.mode === 'navigate';",
+        "}",
+        "",
+        "function isNetworkFirstRequest(request, url) {",
+        "  return isNavigationRequest(request) ||",
+        "    url.pathname.endsWith('/index.html') ||",
+        "    url.pathname.endsWith('/manifest.webmanifest');",
+        "}",
+        "",
+        "self.addEventListener('install', event => {",
+        "  event.waitUntil(",
+        "    caches.open(CACHE_NAME).then(cache => cache.addAll(PRECACHE_URLS)).then(() => self.skipWaiting())",
+        "  );",
+        "});",
+        "",
+        "self.addEventListener('activate', event => {",
+        "  event.waitUntil(",
+        "    caches.keys().then(keys => Promise.all(",
+        "      keys",
+        "        .filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)",
+        "        .map(key => caches.delete(key))",
+        "    )).then(() => self.clients.claim())",
+        "  );",
+        "});",
+        "",
+        "self.addEventListener('fetch', event => {",
+        "  const request = event.request;",
+        "  if (request.method !== 'GET') return;",
+        "",
+        "  const url = new URL(request.url);",
+        "",
+        "  if (url.origin !== self.location.origin) {",
+        "    event.respondWith(networkFirst(request));",
+        "    return;",
+        "  }",
+        "",
+        "  if (isNetworkFirstRequest(request, url)) {",
+        "    event.respondWith(networkFirst(request));",
+        "    return;",
+        "  }",
+        "",
+        "  event.respondWith(cacheFirst(request));",
+        "});"
+    )
     docsDir.file("sw.js").asFile.writeText(docsSw, Charsets.UTF_8)
 
     docsDir.file(".nojekyll").asFile.writeText("", Charsets.UTF_8)

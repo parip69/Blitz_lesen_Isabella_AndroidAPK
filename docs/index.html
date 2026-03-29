@@ -1052,7 +1052,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             const footerLine = footerNote.querySelector(".footer-line");
             if (!footerLine) return;
             footerLine.innerHTML =
-              'Vermerk: Blitzlesen-Training fuer. ver <span id="appVersion">21</span>';
+              'Vermerk: Blitzlesen-Training fuer. ver <span id="appVersion">22</span>';
             const versionEl = footerLine.querySelector("#appVersion");
             if (versionEl) versionEl.textContent = String(version);
           }
@@ -1135,7 +1135,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             if (!("serviceWorker" in navigator)) return;
             if (!(window.isSecureContext || isTrustedLocalhost)) return;
             try {
-              await navigator.serviceWorker.register("./sw.js");
+              await navigator.serviceWorker.register("./sw.js?v=1092df1b09f2");
             } catch (e) {
               console.warn("Service Worker konnte nicht registriert werden:", e);
             }
@@ -2461,7 +2461,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         else onReady();
       })();
     </script>
-    <footer class="footer-note" data-app-version="21">
+    <footer class="footer-note" data-app-version="22">
       <span class="footer-line">Vermerk: Blitzlesen‑Training für. ver 1</span>
       <span class="footer-name" role="button" tabindex="0"
         >❤️ Isabella Bachner ❤️</span
