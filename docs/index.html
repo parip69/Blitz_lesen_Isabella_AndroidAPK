@@ -1112,7 +1112,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           window.__updateHtmlExportButton =
             updateBundledIndexHtmlExportVisibility;
 
-          const SW_VERSION = "blitzlesen-isabella-v28";
+          const SW_VERSION = "blitzlesen-isabella-v29";
 
           function isStandaloneWebApp() {
             const standaloneDisplay =
@@ -2029,27 +2029,9 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             } catch (e) {
               console.warn("Fullscreen nicht moeglich:", e);
             }
-            try {
-              if (
-                screen.orientation &&
-                typeof screen.orientation.lock === "function"
-              ) {
-                await screen.orientation.lock("landscape");
-              }
-            } catch (e) {
-              console.warn("Landscape-Sperre nicht moeglich:", e);
-            }
             return;
           }
           async function exitFullscreen() {
-            try {
-              if (
-                screen.orientation &&
-                typeof screen.orientation.unlock === "function"
-              ) {
-                screen.orientation.unlock();
-              }
-            } catch (_orientationError) {}
             try {
               if (document.fullscreenElement && document.exitFullscreen) {
                 await document.exitFullscreen();
@@ -2516,7 +2498,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         else onReady();
       })();
     </script>
-    <footer class="footer-note" data-app-version="28">
+    <footer class="footer-note" data-app-version="29">
       <span class="footer-name" role="button" tabindex="0"
         >❤️ Isabella Bachner ❤️</span
       >
