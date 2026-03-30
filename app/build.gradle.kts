@@ -1,5 +1,4 @@
 import java.util.Properties
-import java.security.MessageDigest
 
 plugins {
     id("com.android.application")
@@ -38,10 +37,25 @@ fun syncHtmlFooterVersion(content: String, versionName: String, label: String): 
     }
 }
 
+fun syncServiceWorkerCacheName(content: String, cacheName: String, label: String): String {
+    val cachePattern = Regex("""(const\s+CACHE_NAME\s*=\s*')[^']*(';)""", RegexOption.IGNORE_CASE)
+    check(cachePattern.containsMatchIn(content)) { "$label: CACHE_NAME wurde nicht gefunden." }
+
+    return cachePattern.replace(content) {
+        "${it.groupValues[1]}$cacheName${it.groupValues[2]}"
+    }
+}
+
 fun syncIndexHtmlFooterVersion(path: File, versionName: String) {
     if (!path.exists()) return
     val content = path.readText(Charsets.UTF_8)
     path.writeText(syncHtmlFooterVersion(content, versionName, path.path), Charsets.UTF_8)
+}
+
+fun syncServiceWorkerCacheVersion(path: File, cacheName: String) {
+    if (!path.exists()) return
+    val content = path.readText(Charsets.UTF_8)
+    path.writeText(syncServiceWorkerCacheName(content, cacheName, path.path), Charsets.UTF_8)
 }
 
 fun shouldAutoIncrementVersion(taskNames: List<String>): Boolean {
@@ -72,6 +86,7 @@ val currentVersionName = versionProperties.getProperty("VERSION_NAME")
     ?.trim()
     ?.takeIf { it.isNotEmpty() }
     ?: currentVersionCode.toString()
+val webCacheVersion = "blitzlesen-isabella-v$currentVersionName"
 
 fun String.replaceRequired(oldValue: String, newValue: String, label: String): String {
     check(contains(oldValue)) { "syncGitHubPagesDocs: Abschnitt nicht gefunden: $label" }
@@ -81,13 +96,6 @@ fun String.replaceRequired(oldValue: String, newValue: String, label: String): S
 fun String.insertAfterRequired(anchor: String, addition: String, label: String): String {
     check(contains(anchor)) { "syncGitHubPagesDocs: Anker nicht gefunden: $label" }
     return replace(anchor, anchor + addition)
-}
-
-fun String.sha256Short(length: Int = 12): String {
-    val digest = MessageDigest.getInstance("SHA-256")
-        .digest(toByteArray(Charsets.UTF_8))
-        .joinToString("") { "%02x".format(it) }
-    return digest.take(length)
 }
 
 android {
@@ -139,21 +147,40 @@ val docsDir = rootProject.layout.projectDirectory.dir("docs")
 val syncGitHubPagesDocsFiles = {
     val docsDirFile = docsDir.asFile
     val docsIconsDir = docsDir.dir("icons").asFile
+    val sourceHtmlFile = assetsDir.file("index.html").asFile
+    val sourceManifestFile = assetsDir.file("manifest.webmanifest").asFile
+    val sourceSwFile = assetsDir.file("sw.js").asFile
     docsDirFile.mkdirs()
     docsIconsDir.mkdirs()
 
-    val sourceHtml = assetsDir.file("index.html").asFile.readText(Charsets.UTF_8)
-    val sourceManifest = assetsDir.file("manifest.webmanifest").asFile.readText(Charsets.UTF_8)
-    val sourceSw = assetsDir.file("sw.js").asFile.readText(Charsets.UTF_8)
+    syncIndexHtmlFooterVersion(sourceHtmlFile, currentVersionName)
+    syncServiceWorkerCacheVersion(sourceSwFile, webCacheVersion)
+
+    val sourceHtml = sourceHtmlFile.readText(Charsets.UTF_8)
+    val sourceSw = sourceSwFile.readText(Charsets.UTF_8)
     val newline = if (sourceHtml.contains("\r\n")) "\r\n" else "\n"
     fun lines(vararg values: String): String = values.joinToString(newline)
-    val cacheVersion = listOf(currentVersionName, sourceHtml, sourceManifest, sourceSw)
-        .joinToString("\n---\n")
-        .sha256Short()
 
     var docsHtml = syncHtmlFooterVersion(sourceHtml, currentVersionName, "docs/index.html")
     docsHtml = docsHtml.replaceRequired(
-        """    <meta name="viewport" content="width=device-width, initial-scale=1" />""",
+        lines(
+            "    <meta",
+            "      name=\"viewport\"",
+            "      content=\"width=device-width, initial-scale=1, viewport-fit=cover\"",
+            "    />",
+            "    <meta name=\"theme-color\" content=\"#152235\" />",
+            "    <meta name=\"application-name\" content=\"Blitz lesen\" />",
+            "    <meta name=\"mobile-web-app-capable\" content=\"yes\" />",
+            "    <meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />",
+            "    <meta",
+            "      name=\"apple-mobile-web-app-status-bar-style\"",
+            "      content=\"black-translucent\"",
+            "    />",
+            "    <meta name=\"apple-mobile-web-app-title\" content=\"Blitz lesen\" />",
+            "    <link rel=\"manifest\" href=\"./manifest.webmanifest\" />",
+            "    <link rel=\"apple-touch-icon\" href=\"./icons/apple-touch-icon.png\" />",
+            "    <link rel=\"icon\" type=\"image/png\" sizes=\"192x192\" href=\"./icons/icon-192.png\" />"
+        ),
         lines(
             "    <meta",
             "      name=\"viewport\"",
@@ -272,6 +299,8 @@ val syncGitHubPagesDocsFiles = {
             "          window.__updateHtmlExportButton =",
             "            updateBundledIndexHtmlExportVisibility;",
             "",
+            "          const SW_VERSION = \"$webCacheVersion\";",
+            "",
             "          function isStandaloneWebApp() {",
             "            const standaloneDisplay =",
             "              typeof window.matchMedia === \"function\" &&",
@@ -301,17 +330,32 @@ val syncGitHubPagesDocsFiles = {
             "            installHintText.textContent = message;",
             "          }",
             "",
-            "          async function registerBrowserServiceWorker() {",
+            "          function registerBrowserServiceWorker() {",
             "            const isTrustedLocalhost = [\"localhost\", \"127.0.0.1\", \"::1\"].includes(",
             "              window.location.hostname,",
             "            );",
             "            if (!(\"serviceWorker\" in navigator)) return;",
             "            if (!(window.isSecureContext || isTrustedLocalhost)) return;",
-            "            try {",
-            "              await navigator.serviceWorker.register(\"./sw.js?v=$cacheVersion\");",
-            "            } catch (e) {",
-            "              console.warn(\"Service Worker konnte nicht registriert werden:\", e);",
+            "",
+            "            const register = () => {",
+            "              navigator.serviceWorker",
+            "                .register(\"./sw.js?v=\" + SW_VERSION, { updateViaCache: \"none\" })",
+            "                .then((registration) => {",
+            "                  if (registration && typeof registration.update === \"function\") {",
+            "                    registration.update().catch(() => {});",
+            "                  }",
+            "                })",
+            "                .catch((e) => {",
+            "                  console.warn(\"Service Worker konnte nicht registriert werden:\", e);",
+            "                });",
+            "            };",
+            "",
+            "            if (document.readyState === \"complete\") {",
+            "              register();",
+            "              return;",
             "            }",
+            "",
+            "            window.addEventListener(\"load\", register, { once: true });",
             "          }",
             "",
             "          window.addEventListener(\"appinstalled\", updateInstallHintVisibility);"
@@ -339,7 +383,7 @@ val syncGitHubPagesDocsFiles = {
     docsDir.file("index.html").asFile.writeText(docsHtml, Charsets.UTF_8)
 
     project.copy {
-        from(assetsDir.file("manifest.webmanifest").asFile)
+        from(sourceManifestFile)
         into(docsDirFile)
     }
     project.copy {
@@ -347,83 +391,7 @@ val syncGitHubPagesDocsFiles = {
         into(docsIconsDir)
     }
 
-    val docsSw = lines(
-        "const CACHE_NAME = 'blitz-lesen-docs-$cacheVersion';",
-        "const CACHE_PREFIX = 'blitz-lesen-docs-';",
-        "const PRECACHE_URLS = [",
-        "  './',",
-        "  './index.html',",
-        "  './manifest.webmanifest',",
-        "  './icons/icon-192.png',",
-        "  './icons/icon-512.png',",
-        "  './icons/apple-touch-icon.png'",
-        "];",
-        "",
-        "function putInCache(request, response) {",
-        "  if (!response || response.status !== 200 || response.type === 'opaque') return response;",
-        "  const copy = response.clone();",
-        "  caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => {});",
-        "  return response;",
-        "}",
-        "",
-        "function networkFirst(request) {",
-        "  return fetch(request)",
-        "    .then(response => putInCache(request, response))",
-        "    .catch(() => caches.match(request));",
-        "}",
-        "",
-        "function cacheFirst(request) {",
-        "  return caches.match(request).then(cached => {",
-        "    if (cached) return cached;",
-        "    return fetch(request).then(response => putInCache(request, response));",
-        "  });",
-        "}",
-        "",
-        "function isNavigationRequest(request) {",
-        "  return request.mode === 'navigate';",
-        "}",
-        "",
-        "function isNetworkFirstRequest(request, url) {",
-        "  return isNavigationRequest(request) ||",
-        "    url.pathname.endsWith('/index.html') ||",
-        "    url.pathname.endsWith('/manifest.webmanifest');",
-        "}",
-        "",
-        "self.addEventListener('install', event => {",
-        "  event.waitUntil(",
-        "    caches.open(CACHE_NAME).then(cache => cache.addAll(PRECACHE_URLS)).then(() => self.skipWaiting())",
-        "  );",
-        "});",
-        "",
-        "self.addEventListener('activate', event => {",
-        "  event.waitUntil(",
-        "    caches.keys().then(keys => Promise.all(",
-        "      keys",
-        "        .filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)",
-        "        .map(key => caches.delete(key))",
-        "    )).then(() => self.clients.claim())",
-        "  );",
-        "});",
-        "",
-        "self.addEventListener('fetch', event => {",
-        "  const request = event.request;",
-        "  if (request.method !== 'GET') return;",
-        "",
-        "  const url = new URL(request.url);",
-        "",
-        "  if (url.origin !== self.location.origin) {",
-        "    event.respondWith(networkFirst(request));",
-        "    return;",
-        "  }",
-        "",
-        "  if (isNetworkFirstRequest(request, url)) {",
-        "    event.respondWith(networkFirst(request));",
-        "    return;",
-        "  }",
-        "",
-        "  event.respondWith(cacheFirst(request));",
-        "});"
-    )
+    val docsSw = syncServiceWorkerCacheName(sourceSw, webCacheVersion, "docs/sw.js")
     docsDir.file("sw.js").asFile.writeText(docsSw, Charsets.UTF_8)
 
     docsDir.file(".nojekyll").asFile.writeText("", Charsets.UTF_8)

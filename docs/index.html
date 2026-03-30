@@ -45,9 +45,20 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         box-sizing: border-box;
       }
 
+      html,
+      body {
+        min-height: 100%;
+      }
+
       body {
         margin: 0;
-        padding: 8px 10px;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding:
+          calc(8px + env(safe-area-inset-top, 0px))
+          calc(10px + env(safe-area-inset-right, 0px))
+          calc(8px + env(safe-area-inset-bottom, 0px))
+          calc(10px + env(safe-area-inset-left, 0px));
         background:
           radial-gradient(1200px 800px at 10% -10%, #1f2937, #0b1020), var(--bg);
         color: var(--text);
@@ -360,6 +371,9 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
       .overlay {
         position: fixed;
         inset: 0;
+        width: 100vw;
+        min-height: 100vh;
+        min-height: 100dvh;
         background: #000;
         z-index: 9999;
         display: flex;
@@ -367,6 +381,11 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         justify-content: flex-start;
         align-items: center;
         gap: 16px;
+        padding:
+          env(safe-area-inset-top, 0px)
+          env(safe-area-inset-right, 0px)
+          env(safe-area-inset-bottom, 0px)
+          env(safe-area-inset-left, 0px);
       }
 
       .overlay .overlay-out {
@@ -374,6 +393,13 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         margin-top: var(--ov-top-gap);
         height: calc(
           100vh - var(--ov-top-gap) -
+            (
+              var(--bar-height, 64px) + var(--bar-offset, 20px) +
+                env(safe-area-inset-bottom, 0px) + 10px
+            )
+        );
+        height: calc(
+          100dvh - var(--ov-top-gap) -
             (
               var(--bar-height, 64px) + var(--bar-offset, 20px) +
                 env(safe-area-inset-bottom, 0px) + 10px
@@ -426,6 +452,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
       .manual-card {
         width: min(1100px, 95vw);
         max-height: min(88vh, 1200px);
+        max-height: min(88dvh, 1200px);
         overflow: auto;
         background: linear-gradient(
           180deg,
@@ -1085,6 +1112,8 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           window.__updateHtmlExportButton =
             updateBundledIndexHtmlExportVisibility;
 
+          const SW_VERSION = "blitzlesen-isabella-v28";
+
           function isStandaloneWebApp() {
             const standaloneDisplay =
               typeof window.matchMedia === "function" &&
@@ -1114,17 +1143,32 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             installHintText.textContent = message;
           }
 
-          async function registerBrowserServiceWorker() {
+          function registerBrowserServiceWorker() {
             const isTrustedLocalhost = ["localhost", "127.0.0.1", "::1"].includes(
               window.location.hostname,
             );
             if (!("serviceWorker" in navigator)) return;
             if (!(window.isSecureContext || isTrustedLocalhost)) return;
-            try {
-              await navigator.serviceWorker.register("./sw.js?v=d2edcaa578cc");
-            } catch (e) {
-              console.warn("Service Worker konnte nicht registriert werden:", e);
+
+            const register = () => {
+              navigator.serviceWorker
+                .register("./sw.js?v=" + SW_VERSION, { updateViaCache: "none" })
+                .then((registration) => {
+                  if (registration && typeof registration.update === "function") {
+                    registration.update().catch(() => {});
+                  }
+                })
+                .catch((e) => {
+                  console.warn("Service Worker konnte nicht registriert werden:", e);
+                });
+            };
+
+            if (document.readyState === "complete") {
+              register();
+              return;
             }
+
+            window.addEventListener("load", register, { once: true });
           }
 
           window.addEventListener("appinstalled", updateInstallHintVisibility);
@@ -1971,20 +2015,41 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           }
 
           async function enterFullscreen() {
-            // Vollbild-Hinweise unterdrücken: Kein nativer Fullscreen mehr
-            // Das Overlay selbst reicht für den Vollbild-Effekt
+            const target = overlayEl || document.documentElement;
             try {
-              // Optionale Vollbild-Aktivierung nur bei explizitem Bedarf
-              // if(!document.fullscreenElement){
-              //   const target = overlayEl || document.documentElement;
-              //   if(target.requestFullscreen){ await target.requestFullscreen({navigationUI:'hide'}); }
-              //   else if(document.documentElement.requestFullscreen){ await document.documentElement.requestFullscreen(); }
-              // }
+              if (!document.fullscreenElement && target) {
+                if (typeof target.requestFullscreen === "function") {
+                  try {
+                    await target.requestFullscreen({ navigationUI: "hide" });
+                  } catch (_requestOptionsError) {
+                    await target.requestFullscreen();
+                  }
+                }
+              }
             } catch (e) {
-              console.warn("Fullscreen nicht möglich:", e);
+              console.warn("Fullscreen nicht moeglich:", e);
             }
+            try {
+              if (
+                screen.orientation &&
+                typeof screen.orientation.lock === "function"
+              ) {
+                await screen.orientation.lock("landscape");
+              }
+            } catch (e) {
+              console.warn("Landscape-Sperre nicht moeglich:", e);
+            }
+            return;
           }
           async function exitFullscreen() {
+            try {
+              if (
+                screen.orientation &&
+                typeof screen.orientation.unlock === "function"
+              ) {
+                screen.orientation.unlock();
+              }
+            } catch (_orientationError) {}
             try {
               if (document.fullscreenElement && document.exitFullscreen) {
                 await document.exitFullscreen();
@@ -1992,6 +2057,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             } catch (e) {
               console.warn("Fullscreen verlassen fehlgeschlagen:", e);
             }
+            return;
           }
 
           function openOverlay() {
@@ -2006,7 +2072,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
               statusEl.dataset.prevDisplay = statusEl.style.display || "";
               statusEl.style.display = "none";
             }
-            // enterFullscreen(); // Deaktiviert um Browser-Hinweise zu vermeiden
+            void enterFullscreen();
             updateOverlayLayout();
             updateButtons();
             fitAll();
@@ -2042,6 +2108,8 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             isPaused = false;
             updateButtons();
             if (playFromUi) openOverlay();
+            else if (overlayEl && !overlayEl.classList.contains("hidden"))
+              void enterFullscreen();
             showCurrent();
             scheduleNext();
           }
@@ -2342,6 +2410,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             fitAll();
             updateOverlayLayout();
           });
+          document.addEventListener("fullscreenchange", updateOverlayLayout);
           window.addEventListener("orientationchange", updateOverlayLayout);
           document.addEventListener("keydown", (e) => {
             if (document.activeElement === inputEl) return;
@@ -2447,7 +2516,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         else onReady();
       })();
     </script>
-    <footer class="footer-note" data-app-version="27">
+    <footer class="footer-note" data-app-version="28">
       <span class="footer-name" role="button" tabindex="0"
         >❤️ Isabella Bachner ❤️</span
       >

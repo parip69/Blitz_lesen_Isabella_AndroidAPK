@@ -1,4 +1,5 @@
-const CACHE_NAME = 'mathe-guru-v183';
+const CACHE_NAME = 'blitzlesen-isabella-v28';
+const CACHE_PREFIX = 'blitzlesen-isabella-';
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -7,6 +8,36 @@ const PRECACHE_URLS = [
   './icons/icon-512.png',
   './icons/apple-touch-icon.png'
 ];
+
+function putInCache(request, response) {
+  if (!response || response.status !== 200 || response.type === 'opaque') return response;
+  const copy = response.clone();
+  caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => {});
+  return response;
+}
+
+function networkFirst(request) {
+  return fetch(request)
+    .then(response => putInCache(request, response))
+    .catch(() => caches.match(request));
+}
+
+function cacheFirst(request) {
+  return caches.match(request).then(cached => {
+    if (cached) return cached;
+    return fetch(request).then(response => putInCache(request, response));
+  });
+}
+
+function isNavigationRequest(request) {
+  return request.mode === 'navigate';
+}
+
+function isNetworkFirstRequest(request, url) {
+  return isNavigationRequest(request) ||
+    url.pathname.endsWith('/index.html') ||
+    url.pathname.endsWith('/manifest.webmanifest');
+}
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -17,7 +48,9 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => Promise.all(
-      keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+      keys
+        .filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+        .map(key => caches.delete(key))
     )).then(() => self.clients.claim())
   );
 });
@@ -28,28 +61,15 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(request.url);
 
-  // Für Google Fonts & ähnliche CDNs: Netzwerk zuerst, dann Cache
   if (url.origin !== self.location.origin) {
-    event.respondWith(
-      fetch(request).then(response => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => {});
-        return response;
-      }).catch(() => caches.match(request))
-    );
+    event.respondWith(networkFirst(request));
     return;
   }
 
-  // Für eigene Dateien: Cache zuerst
-  event.respondWith(
-    caches.match(request).then(cached => {
-      if (cached) return cached;
-      return fetch(request).then(response => {
-        if (!response || response.status !== 200 || response.type === 'opaque') return response;
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => {});
-        return response;
-      });
-    })
-  );
+  if (isNetworkFirstRequest(request, url)) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  event.respondWith(cacheFirst(request));
 });

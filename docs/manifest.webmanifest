@@ -6,8 +6,12 @@
   "lang": "de",
   "start_url": "./index.html",
   "scope": "./",
-  "display": "standalone",
-  "orientation": "portrait",
+  "display": "fullscreen",
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
+  "orientation": "landscape",
   "background_color": "#152235",
   "theme_color": "#152235",
   "icons": [
