@@ -9,7 +9,9 @@
   "display": "fullscreen",
   "display_override": [
     "fullscreen",
-    "standalone"
+    "standalone",
+    "minimal-ui",
+    "browser"
   ],
   "orientation": "any",
   "background_color": "#152235",

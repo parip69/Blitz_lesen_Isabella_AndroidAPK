@@ -108,6 +108,22 @@ function Set-IndexVersion {
     Write-Utf8NoBom -Path $Path -Content $content
 }
 
+function Invoke-WebAssetSync {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$GradlewPath
+    )
+
+    if (-not (Test-Path -LiteralPath $GradlewPath)) {
+        throw "gradlew.bat nicht gefunden: $GradlewPath"
+    }
+
+    & $GradlewPath syncGitHubPagesDocs
+    if ($LASTEXITCODE -ne 0) {
+        throw "Gradle-Sync fuer Web-Assets fehlgeschlagen."
+    }
+}
+
 function Find-VersionedApk {
     param(
         [Parameter(Mandatory = $true)]
@@ -134,8 +150,10 @@ try {
 
         Set-VersionProperties -Path $versionFile -VersionCode $nextVersionCode -VersionName $nextVersionName
         Set-IndexVersion -Path $indexFile -VersionName $nextVersionName
+        Invoke-WebAssetSync -GradlewPath $gradlewBat
 
         Write-Host "Version auf $nextVersionName synchronisiert."
+        Write-Host "Web-Assets und docs/ wurden aktualisiert."
         Write-Host "Build wurde mit -SkipBuild uebersprungen."
         return
     }
@@ -148,6 +166,8 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "Gradle-Build fehlgeschlagen."
     }
+
+    Invoke-WebAssetSync -GradlewPath $gradlewBat
 
     $builtVersionName = Get-CurrentVersionName -Path $versionFile
     Write-Host "Build hat Version $builtVersionName erstellt."

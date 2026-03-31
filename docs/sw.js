@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blitzlesen-isabella-v29';
+const CACHE_NAME = 'blitzlesen-isabella-v30';
 const CACHE_PREFIX = 'blitzlesen-isabella-';
 const PRECACHE_URLS = [
   './',
