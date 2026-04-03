@@ -737,6 +737,10 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           </div>
         </div>
       </section>
+
+      <section class="card compact" id="installHintCard" hidden>
+        <div class="hint" id="installHintText"></div>
+      </section>
     </div>
 
     <!-- Vollbild Overlay -->
@@ -1054,6 +1058,8 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           const manualClose = need("#manualClose", "manualClose");
           const exportHtmlBtn = need("#exportHtmlButton", "exportHtmlButton");
           const exportHtmlNote = $("#exportHtmlNote");
+          const installHintCard = $("#installHintCard");
+          const installHintText = $("#installHintText");
 
           if (!inputEl || !outputBox || !countEl) {
             console.error(
@@ -1065,8 +1071,11 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           const APP_NAME_FALLBACK = "Blitz lesen";
           const APP_VERSION_FALLBACK = "1";
           const STORAGE_KEY = "wortabspieler.settings.v13";
+          const INSTALLED_WEB_VERSION_STORAGE_KEY =
+            "wortabspieler.installedWebVersion";
           const TIMER_LABEL = "Lesezeit";
           const HTML_EXPORT_STATUS_MS = 3600;
+          const SW_VERSION = "blitzlesen-isabella-v34";
           const footerNote = $(".footer-note");
           let exportStatusResetTimer = null;
 
@@ -1112,6 +1121,243 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
 
           window.__updateHtmlExportButton =
             updateBundledIndexHtmlExportVisibility;
+
+          function isStandaloneWebApp() {
+            if (typeof window.matchMedia === "function") {
+              const standaloneDisplay =
+                window.matchMedia("(display-mode: standalone)").matches ||
+                window.matchMedia("(display-mode: minimal-ui)").matches ||
+                window.matchMedia("(display-mode: fullscreen)").matches;
+              if (standaloneDisplay) return true;
+            }
+
+            return window.navigator.standalone === true;
+          }
+
+          function isIOSDevice() {
+            const ua = String(window.navigator.userAgent || "");
+            const platform = String(window.navigator.platform || "");
+            const maxTouchPoints = Number(window.navigator.maxTouchPoints || 0);
+            return (
+              /iPad|iPhone|iPod/i.test(ua) ||
+              (platform === "MacIntel" && maxTouchPoints > 1)
+            );
+          }
+
+          function isAndroidDevice() {
+            return /Android/i.test(String(window.navigator.userAgent || ""));
+          }
+
+          function isAndroidAppWebView() {
+            try {
+              if (window.AndroidInterface || window.AndroidDownload) return true;
+            } catch (e) {}
+
+            const currentUrl = String(window.location.href || "");
+            const ua = String(window.navigator.userAgent || "");
+            const hasWebViewUa = /\bwv\b/i.test(ua) || /; wv\)/i.test(ua);
+
+            return (
+              currentUrl.indexOf("file:///android_asset/") === 0 ||
+              (hasWebViewUa && !/^https?:/i.test(currentUrl))
+            );
+          }
+
+          function isInAppBrowser() {
+            const ua = String(window.navigator.userAgent || "");
+            return /FBAN|FBAV|Instagram|Line\/|Snapchat|TikTok|MicroMessenger|Telegram|WhatsApp|Messenger|\bwv\b|; wv\)/i.test(
+              ua,
+            );
+          }
+
+          function normalizeVersionParts(version) {
+            const matches = String(version || "").match(/\d+/g);
+            if (!matches) return [];
+            return matches
+              .map((part) => parseInt(part, 10))
+              .filter((part) => Number.isFinite(part));
+          }
+
+          function compareVersionValues(leftVersion, rightVersion) {
+            const left = normalizeVersionParts(leftVersion);
+            const right = normalizeVersionParts(rightVersion);
+            const maxLength = Math.max(left.length, right.length);
+
+            for (let i = 0; i < maxLength; i += 1) {
+              const leftPart = left[i] ?? 0;
+              const rightPart = right[i] ?? 0;
+              if (leftPart > rightPart) return 1;
+              if (leftPart < rightPart) return -1;
+            }
+
+            const leftText = String(leftVersion || "").trim();
+            const rightText = String(rightVersion || "").trim();
+            if (!left.length && !right.length) {
+              return leftText.localeCompare(rightText, undefined, {
+                numeric: true,
+                sensitivity: "base",
+              });
+            }
+
+            return 0;
+          }
+
+          function getKnownInstalledWebVersion() {
+            try {
+              return String(
+                localStorage.getItem(INSTALLED_WEB_VERSION_STORAGE_KEY) || "",
+              ).trim();
+            } catch (e) {
+              return "";
+            }
+          }
+
+          function rememberKnownInstalledWebVersion(
+            version = getCurrentAppVersion(),
+          ) {
+            const cleanVersion = String(version || "").trim();
+            if (!cleanVersion) return;
+
+            try {
+              if (getKnownInstalledWebVersion() === cleanVersion) return;
+              localStorage.setItem(
+                INSTALLED_WEB_VERSION_STORAGE_KEY,
+                cleanVersion,
+              );
+            } catch (e) {}
+          }
+
+          function getInstallHintContext() {
+            const currentVersion = getCurrentAppVersion();
+            const installedVersion = getKnownInstalledWebVersion();
+            const hasKnownInstalledVersion = Boolean(installedVersion);
+            const installedVersionComparison = hasKnownInstalledVersion
+              ? compareVersionValues(installedVersion, currentVersion)
+              : null;
+            const isStandalone = isStandaloneWebApp();
+            const isIOS = isIOSDevice();
+            const isAndroid = isAndroidDevice();
+            const isApkWebView = isAndroidAppWebView();
+            const inAppBrowser = !isApkWebView && isInAppBrowser();
+
+            return {
+              currentVersion,
+              hasKnownInstalledVersion,
+              installedVersion,
+              installedVersionComparison,
+              isAndroid,
+              isApkWebView,
+              isIOS,
+              isInAppBrowser: inAppBrowser,
+              isInstalledVersionCurrent:
+                hasKnownInstalledVersion && installedVersionComparison >= 0,
+              isInstallUpdateAvailable:
+                hasKnownInstalledVersion && installedVersionComparison < 0,
+              isStandalone,
+            };
+          }
+
+          function syncKnownInstalledWebVersion() {
+            const ctx = getInstallHintContext();
+            if (!ctx.isStandalone) return;
+            rememberKnownInstalledWebVersion(ctx.currentVersion);
+          }
+
+          function getInstallHintMessage() {
+            const ctx = getInstallHintContext();
+
+            if (ctx.isApkWebView) return "";
+            if (ctx.isStandalone) return "";
+            if (ctx.isInstalledVersionCurrent) return "";
+
+            if (ctx.isInAppBrowser) {
+              if (ctx.isIOS) {
+                if (ctx.isInstallUpdateAvailable) {
+                  return `Neue Version ${ctx.currentVersion} verfügbar. Bitte zuerst in Safari öffnen und dort erneut zum Home-Bildschirm hinzufügen.`;
+                }
+
+                return "Bitte zuerst in Safari öffnen. Im In-App-Browser funktioniert „Zum Home-Bildschirm“ nicht zuverlässig.";
+              }
+
+              if (ctx.isAndroid) {
+                if (ctx.isInstallUpdateAvailable) {
+                  return `Neue Version ${ctx.currentVersion} verfügbar. Bitte zuerst im normalen Browser öffnen und dort „App installieren“ oder „Zum Startbildschirm“ wählen.`;
+                }
+
+                return "Bitte zuerst im normalen Browser öffnen. Im In-App-Browser über das Menü „Im Browser öffnen“ wechseln.";
+              }
+
+              return "Bitte zuerst im normalen Browser öffnen. In-App-Browser unterstützen die Installation nicht zuverlässig.";
+            }
+
+            if (ctx.isIOS) {
+              if (ctx.isInstallUpdateAvailable) {
+                return `Neue Version ${ctx.currentVersion} verfügbar. In Safari öffnen -> Teilen -> Zum Home-Bildschirm.`;
+              }
+
+              return "Tipp: In Safari öffnen und dann Teilen -> Zum Home-Bildschirm nutzen.";
+            }
+
+            if (ctx.isAndroid) {
+              if (ctx.isInstallUpdateAvailable) {
+                return `Neue Version ${ctx.currentVersion} verfügbar. Im Browser-Menü „Zum Startbildschirm“ oder „App installieren“ erneut wählen.`;
+              }
+
+              return "Tipp: Im normalen Browser öffnen und über das Menü „Zum Startbildschirm“ oder „App installieren“ nutzen.";
+            }
+
+            return "";
+          }
+
+          function updateInstallHintVisibility() {
+            if (!installHintCard || !installHintText) return;
+            const message = getInstallHintMessage();
+            installHintCard.hidden = !message;
+            installHintText.textContent = message;
+          }
+
+          function registerBrowserServiceWorker() {
+            const isTrustedLocalhost = ["localhost", "127.0.0.1", "::1"].includes(
+              window.location.hostname,
+            );
+            if (isAndroidAppWebView()) return;
+            if (!("serviceWorker" in navigator)) return;
+            if (!(window.isSecureContext || isTrustedLocalhost)) return;
+
+            const register = () => {
+              navigator.serviceWorker
+                .register("./sw.js?v=" + SW_VERSION, { updateViaCache: "none" })
+                .then((registration) => {
+                  if (registration && typeof registration.update === "function") {
+                    registration.update().catch(() => {});
+                  }
+                })
+                .catch((e) => {
+                  console.warn("Service Worker konnte nicht registriert werden:", e);
+                });
+            };
+
+            if (document.readyState === "complete") {
+              register();
+              return;
+            }
+
+            window.addEventListener("load", register, { once: true });
+          }
+
+          window.addEventListener("appinstalled", () => {
+            rememberKnownInstalledWebVersion();
+            updateInstallHintVisibility();
+          });
+          window.addEventListener("pageshow", () => {
+            syncKnownInstalledWebVersion();
+            updateInstallHintVisibility();
+          });
+          document.addEventListener("visibilitychange", () => {
+            if (document.hidden) return;
+            syncKnownInstalledWebVersion();
+            updateInstallHintVisibility();
+          });
 
           function sanitizeFilenamePart(value) {
             return String(value || "")
@@ -2418,6 +2664,9 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           })();
           updateOverlayLayout();
           updateBundledIndexHtmlExportVisibility();
+          syncKnownInstalledWebVersion();
+          updateInstallHintVisibility();
+          registerBrowserServiceWorker();
           if (!loaded) {
             saveSettings();
           }
@@ -2436,7 +2685,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         else onReady();
       })();
     </script>
-    <footer class="footer-note" data-app-version="32">
+    <footer class="footer-note" data-app-version="34">
       <span class="footer-name" role="button" tabindex="0"
         >❤️ Isabella Bachner ❤️</span
       >
