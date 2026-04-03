@@ -181,6 +181,30 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         cursor: not-allowed;
       }
 
+      #installHintCard .install-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      #installBtn {
+        display: none;
+        padding: 12px 18px;
+        font-size: 16px;
+        border-radius: 10px;
+        cursor: pointer;
+        min-width: 180px;
+      }
+
+      #installHint {
+        display: none;
+        font-size: 15px;
+        color: #cbd5e1;
+        margin-top: 12px;
+        line-height: 1.45;
+      }
+
       .btn.primary {
         background: linear-gradient(90deg, #16a34a, #22c55e);
         border-color: rgba(34, 197, 94, 0.7);
@@ -739,7 +763,12 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
       </section>
 
       <section class="card compact" id="installHintCard" hidden>
-        <div class="hint" id="installHintText"></div>
+        <div class="install-actions">
+          <button id="installBtn" class="btn primary" type="button">
+            App installieren
+          </button>
+          <div class="hint" id="installHint"></div>
+        </div>
       </section>
     </div>
 
@@ -1059,7 +1088,8 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           const exportHtmlBtn = need("#exportHtmlButton", "exportHtmlButton");
           const exportHtmlNote = $("#exportHtmlNote");
           const installHintCard = $("#installHintCard");
-          const installHintText = $("#installHintText");
+          const installBtn = $("#installBtn");
+          const installHint = $("#installHint");
 
           if (!inputEl || !outputBox || !countEl) {
             console.error(
@@ -1075,9 +1105,10 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             "wortabspieler.installedWebVersion";
           const TIMER_LABEL = "Lesezeit";
           const HTML_EXPORT_STATUS_MS = 3600;
-          const SW_VERSION = "blitzlesen-isabella-v34";
+          const SW_VERSION = "blitzlesen-isabella-v36";
           const footerNote = $(".footer-note");
           let exportStatusResetTimer = null;
+          let deferredPrompt = null;
 
           function getAndroidBridge() {
             if (window.AndroidInterface) return window.AndroidInterface;
@@ -1263,39 +1294,31 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             rememberKnownInstalledWebVersion(ctx.currentVersion);
           }
 
-          function getInstallHintMessage() {
-            const ctx = getInstallHintContext();
-
-            if (ctx.isApkWebView) return "";
-            if (ctx.isStandalone) return "";
-            if (ctx.isInstalledVersionCurrent) return "";
+          function getInstallHintMessage(ctx) {
+            if (!ctx) return "";
 
             if (ctx.isInAppBrowser) {
-              if (ctx.isIOS) {
-                if (ctx.isInstallUpdateAvailable) {
-                  return `Neue Version ${ctx.currentVersion} verfügbar. Bitte zuerst in Safari öffnen und dort erneut zum Home-Bildschirm hinzufügen.`;
-                }
+              return "Bitte im normalen Browser öffnen";
+            }
 
-                return "Bitte zuerst in Safari öffnen. Im In-App-Browser funktioniert „Zum Home-Bildschirm“ nicht zuverlässig.";
+            if (ctx.isInstalledVersionCurrent) {
+              if (ctx.isIOS) {
+                return `Version ${ctx.currentVersion} ist bereits aktuell. Wenn die App schon zum Home-Bildschirm hinzugefügt wurde, ist keine Neuinstallation nötig.`;
               }
 
               if (ctx.isAndroid) {
-                if (ctx.isInstallUpdateAvailable) {
-                  return `Neue Version ${ctx.currentVersion} verfügbar. Bitte zuerst im normalen Browser öffnen und dort „App installieren“ oder „Zum Startbildschirm“ wählen.`;
-                }
-
-                return "Bitte zuerst im normalen Browser öffnen. Im In-App-Browser über das Menü „Im Browser öffnen“ wechseln.";
+                return `Version ${ctx.currentVersion} ist bereits aktuell. Wenn die App schon installiert ist, einfach öffnen, keine Neuinstallation nötig.`;
               }
 
-              return "Bitte zuerst im normalen Browser öffnen. In-App-Browser unterstützen die Installation nicht zuverlässig.";
+              return "";
             }
 
             if (ctx.isIOS) {
               if (ctx.isInstallUpdateAvailable) {
-                return `Neue Version ${ctx.currentVersion} verfügbar. In Safari öffnen -> Teilen -> Zum Home-Bildschirm.`;
+                return `Neue Version ${ctx.currentVersion} verfügbar. Safari öffnen → Teilen → Zum Home-Bildschirm`;
               }
 
-              return "Tipp: In Safari öffnen und dann Teilen -> Zum Home-Bildschirm nutzen.";
+              return "Safari öffnen → Teilen → Zum Home-Bildschirm";
             }
 
             if (ctx.isAndroid) {
@@ -1303,17 +1326,95 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
                 return `Neue Version ${ctx.currentVersion} verfügbar. Im Browser-Menü „Zum Startbildschirm“ oder „App installieren“ erneut wählen.`;
               }
 
-              return "Tipp: Im normalen Browser öffnen und über das Menü „Zum Startbildschirm“ oder „App installieren“ nutzen.";
+              return "Im Browser-Menü „Zum Startbildschirm“ oder „App installieren“ wählen.";
             }
 
             return "";
           }
 
-          function updateInstallHintVisibility() {
-            if (!installHintCard || !installHintText) return;
-            const message = getInstallHintMessage();
-            installHintCard.hidden = !message;
-            installHintText.textContent = message;
+          function getInstallButtonLabel(ctx) {
+            if (ctx && ctx.isInstallUpdateAvailable) {
+              return "App aktualisieren";
+            }
+
+            return "App installieren";
+          }
+
+          function getInstallUiState() {
+            const ctx = getInstallHintContext();
+
+            if (ctx.isApkWebView || ctx.isStandalone) {
+              return {
+                showCard: false,
+                showButton: false,
+                buttonLabel: "",
+                hintText: "",
+              };
+            }
+
+            if (ctx.isInAppBrowser) {
+              return {
+                showCard: true,
+                showButton: false,
+                buttonLabel: "",
+                hintText: getInstallHintMessage(ctx),
+              };
+            }
+
+            if (ctx.isInstalledVersionCurrent) {
+              return {
+                showCard: true,
+                showButton: false,
+                buttonLabel: "",
+                hintText: getInstallHintMessage(ctx),
+              };
+            }
+
+            if (ctx.isIOS) {
+              return {
+                showCard: true,
+                showButton: false,
+                buttonLabel: "",
+                hintText: getInstallHintMessage(ctx),
+              };
+            }
+
+            if (deferredPrompt) {
+              return {
+                showCard: true,
+                showButton: true,
+                buttonLabel: getInstallButtonLabel(ctx),
+                hintText: "",
+              };
+            }
+
+            if (ctx.isAndroid) {
+              return {
+                showCard: true,
+                showButton: false,
+                buttonLabel: "",
+                hintText: getInstallHintMessage(ctx),
+              };
+            }
+
+            return {
+              showCard: false,
+              showButton: false,
+              buttonLabel: "",
+              hintText: "",
+            };
+          }
+
+          function updateInstallUi() {
+            if (!installHintCard || !installBtn || !installHint) return;
+
+            const state = getInstallUiState();
+            installHintCard.hidden = !state.showCard;
+
+            installBtn.style.display = state.showButton ? "inline-block" : "none";
+            installBtn.textContent = state.buttonLabel || "App installieren";
+            installHint.textContent = state.hintText || "";
+            installHint.style.display = state.hintText ? "block" : "none";
           }
 
           function registerBrowserServiceWorker() {
@@ -1345,18 +1446,26 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             window.addEventListener("load", register, { once: true });
           }
 
+          window.addEventListener("beforeinstallprompt", (event) => {
+            if (isAndroidAppWebView()) return;
+            event.preventDefault();
+            deferredPrompt = event;
+            updateInstallUi();
+          });
+
           window.addEventListener("appinstalled", () => {
+            deferredPrompt = null;
             rememberKnownInstalledWebVersion();
-            updateInstallHintVisibility();
+            updateInstallUi();
           });
           window.addEventListener("pageshow", () => {
             syncKnownInstalledWebVersion();
-            updateInstallHintVisibility();
+            updateInstallUi();
           });
           document.addEventListener("visibilitychange", () => {
             if (document.hidden) return;
             syncKnownInstalledWebVersion();
-            updateInstallHintVisibility();
+            updateInstallUi();
           });
 
           function sanitizeFilenamePart(value) {
@@ -2641,6 +2750,24 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
               closeManual();
           });
           exportHtmlBtn.addEventListener("click", exportBundledIndexHtml);
+          if (installBtn) {
+            installBtn.addEventListener("click", async () => {
+              if (!deferredPrompt) {
+                updateInstallUi();
+                return;
+              }
+
+              try {
+                await deferredPrompt.prompt();
+                await deferredPrompt.userChoice;
+              } catch (e) {
+                console.warn("Installationsdialog fehlgeschlagen:", e);
+              } finally {
+                deferredPrompt = null;
+                updateInstallUi();
+              }
+            });
+          }
 
           // Init
           migrateOld();
@@ -2665,7 +2792,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           updateOverlayLayout();
           updateBundledIndexHtmlExportVisibility();
           syncKnownInstalledWebVersion();
-          updateInstallHintVisibility();
+          updateInstallUi();
           registerBrowserServiceWorker();
           if (!loaded) {
             saveSettings();
@@ -2685,7 +2812,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         else onReady();
       })();
     </script>
-    <footer class="footer-note" data-app-version="34">
+    <footer class="footer-note" data-app-version="36">
       <span class="footer-name" role="button" tabindex="0"
         >❤️ Isabella Bachner ❤️</span
       >
