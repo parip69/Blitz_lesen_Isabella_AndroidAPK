@@ -835,11 +835,13 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           <li><a href="#m-einfuehrung">1. Einführung & Ziel</a></li>
           <li><a href="#m-schnellstart">2. Schnellstart</a></li>
           <li><a href="#m-modi">3. Modi: Wörter vs. ganze Sätze</a></li>
-          <li><a href="#m-zeit">4. Zeitsteuerung & Timer</a></li>
+          <li><a href="#m-zeit">4. Zeitsteuerung, Lesezeit & Timer</a></li>
           <li><a href="#m-anzeige">5. Anzeige & Typografie</a></li>
-          <li><a href="#m-eingabe">6. Eingabe & Zähler</a></li>
-          <li><a href="#m-steuerung">7. Abspiel‑Steuerung & Vollbild</a></li>
-          <li><a href="#m-speicher">8. Speichern, Reset & Standards</a></li>
+          <li><a href="#m-eingabe">6. Eingabe, Trennzeichen & Geschichten</a></li>
+          <li><a href="#m-steuerung">7. Abspiel‑Steuerung, Pause & Vollbild</a></li>
+          <li>
+            <a href="#m-speicher">8. Speichern, Export, Installation & Standards</a>
+          </li>
           <li><a href="#m-shortcuts">9. Tastenkürzel</a></li>
           <li><a href="#m-tipps">10. Trainings‑Tipps</a></li>
           <li><a href="#m-faq">11. FAQ</a></li>
@@ -849,128 +851,180 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         <h2 id="m-einfuehrung">1. Einführung & Ziel</h2>
         <p>
           Der Wort‑ & Satz‑Abspieler unterstützt dich beim
-          <strong>Blitzlesen</strong>. Er zeigt Wörter oder ganze Sätze groß und
-          zentriert an, automatisch im Vollbild, mit frei einstellbarem Tempo
-          und gut lesbarer Typografie.
+          <strong>Blitzlesen</strong>. Er zeigt Wörter, Satzteile oder ganze
+          Geschichten groß und zentriert an, arbeitet im Vollbild und merkt
+          sich deine Eingaben, Einstellungen und gespeicherten Geschichten lokal
+          auf deinem Gerät.
         </p>
 
         <h2 id="m-schnellstart">2. Schnellstart</h2>
         <ul>
           <li>
             <strong>Text einfügen:</strong> Oben ist die Ausgabebox, unten das
-            Eingabefeld. Füge Wörter (durch Leerzeichen/Komma getrennt) oder
-            eine kurze Geschichte ein.
+            Eingabefeld. Füge Wörter, Satzmaterial oder eine ganze Geschichte
+            ein.
           </li>
           <li>
-            <strong>Modus wählen:</strong> „der Reihe nach“ oder „gemischt“. Für
-            Sätze „<em>ganze Sätze</em>“ aktivieren.
+            <strong>Modus wählen:</strong> „der Reihe nach“ oder „gemischt“.
+            Für Geschichten <em>Satzmodus</em> aktivieren, für Wortlisten im
+            Wortmodus bleiben.
+          </li>
+          <li>
+            <strong>Trennart festlegen:</strong> Im Wortmodus bestimmst du über
+            <em>Trennzeichen</em>, wie der Text zerlegt wird. Im Satzmodus wird
+            an Satzzeichen und Zeilenumbrüchen getrennt.
+          </li>
+          <li>
+            <strong>Geschichte sichern:</strong> Mit
+            <em>Text speichern</em> legst du den aktuellen Eingabetext als
+            Geschichte ab. Mit <em>Geschichte hochladen</em> importierst du
+            eine <code>.txt</code>-Datei.
           </li>
           <li>
             <strong>Start:</strong> Klick auf <em>Start</em> → echter
             Vollbildmodus, die Anzeige läuft automatisch.
           </li>
           <li>
-            <strong>Nächstes sofort:</strong> Springt sofort zum nächsten
-            Eintrag.
-          </li>
-          <li>
-            <strong>Stopp:</strong> Beendet die Wiedergabe und verlässt
-            Vollbild.
+            <strong>Während des Lesens:</strong> Mit <em>Zurück</em>,
+            <em>Pause</em> und <em>Nächstes</em> steuerst du gezielt einzelne
+            Schritte.
           </li>
         </ul>
 
         <h2 id="m-modi">3. Modi: Wörter vs. ganze Sätze</h2>
         <ul>
           <li>
-            <strong>Wortmodus:</strong> Einträge werden an
-            Leerzeichen/Komma/Semikolon getrennt. Standardliste der häufigsten
-            Wörter ist vorbefüllt.
+            <strong>Wortmodus:</strong> Einträge werden nach dem aktuell
+            gewählten Trennzeichen zerlegt. Bei „Leerzeichen“ werden
+            abschließende Satzzeichen am Wortende entfernt. Die Standardliste
+            der häufigsten Wörter ist vorbefüllt.
           </li>
           <li>
-            <strong>Satzmodus:</strong> Trennung an <code>.</code>,
-            <code>?</code>, <code>!</code> (inkl. „…“). Standardgeschichte ist
-            vorbefüllt. Satzzeichen bleiben sichtbar.
+            <strong>Satzmodus:</strong> Trennung erfolgt nach
+            <code>.</code>, <code>?</code>, <code>!</code>, <code>…</code>
+            sowie Zeilenumbrüchen. Satzzeichen bleiben sichtbar. Die
+            Standardgeschichte ist vorbefüllt.
           </li>
           <li>
             <strong>Reihenfolge:</strong> „der Reihe nach“ oder „gemischt“
-            (Zufall). Optional Loop am Ende.
+            (Zufall). Optional kann die Anzeige am Ende automatisch neu
+            beginnen.
+          </li>
+          <li>
+            <strong>Moduswechsel:</strong> Die App merkt sich getrennt die
+            letzte Wortliste und die letzte Geschichte. Beim Wechsel wird der
+            passende Inhalt automatisch wiederhergestellt.
           </li>
         </ul>
 
-        <h2 id="m-zeit">4. Zeitsteuerung & Timer</h2>
+        <h2 id="m-zeit">4. Zeitsteuerung, Lesezeit & Timer</h2>
         <ul>
           <li>
-            <strong>Wortmodus:</strong> Tempo über
-            <em>Intervall (Sek.)</em> oder den Schieberegler.
+            <strong>Lesezeit pro Zeichen:</strong> Die Einstellung
+            <em>Lesezeit pro Zeichen (Sek.)</em> gilt für alle Einträge in
+            beiden Modi.
           </li>
           <li>
-            <strong>Satzmodus:</strong> Dynamisch:
-            <strong>0,5 Sekunden pro Zeichen</strong> (Leerzeichen werden
-            <em>nicht</em> mitgezählt).
+            <strong>Dynamische Dauer:</strong> Die tatsächliche Anzeigedauer
+            berechnet sich aus <em>Zeichen ohne Leerzeichen × eingestellte
+            Zeit</em>. Längere Wörter oder Sätze bleiben dadurch automatisch
+            länger sichtbar.
           </li>
           <li>
-            <strong>Countdown‑Anzeige:</strong> Unten rechts in der Ausgabebox
-            steht <em>„Restzeit: total / rest“</em> (in Sekunden). Während des
-            Abspielens zählt „rest“ herunter.
+            <strong>Zahlfeld & Regler:</strong> Beide Eingaben sind gekoppelt.
+            Änderst du die Zeit während des Lesens, startet die aktuelle
+            Taktung mit den neuen Werten neu.
           </li>
           <li>
-            <strong>Zeichenzähler:</strong> Wird angezeigt, wenn nicht
-            abgespielt wird.
+            <strong>Countdown‑Anzeige:</strong> Unten rechts erscheint
+            <em>„Lesezeit: gesamt / rest“</em>. Während des Abspielens zählt der
+            rechte Wert herunter.
+          </li>
+          <li>
+            <strong>Zeichenzähler:</strong> Wenn gerade nicht abgespielt wird,
+            zeigt derselbe Bereich die Zeichenanzahl des aktuellen Eintrags
+            ohne Leerzeichen.
           </li>
         </ul>
 
         <h2 id="m-anzeige">5. Anzeige & Typografie</h2>
         <ul>
           <li>
-            <strong>Größe:</strong> Schieberegler (Standard 60px). Die Anzeige
-            passt sich automatisch an das Feld an (kein Überlauf).
+            <strong>Größe:</strong> Schieberegler von 24 bis 160 Pixel. Die
+            Anzeige passt sich zusätzlich automatisch an das Feld an, damit
+            nichts überläuft.
           </li>
           <li>
-            <strong>Gewicht:</strong> 100–900 (Standard 300) oder
-            <em>automatisch an Größe koppeln</em>. Bei Kopplung wird der Regler
-            ausgeblendet.
+            <strong>Gewicht:</strong> 100–900 oder
+            <em>automatisch an Größe koppeln</em>. Bei aktiver Kopplung bleibt
+            die Schriftstärke passend zur Größe erhalten.
           </li>
           <li><strong>Schriftart:</strong> System, Serif oder Monospace.</li>
           <li>
-            <strong>Sperre:</strong> <em>Regler verstecken</em> blendet den
-            gesamten Typo‑Block aus (Schutz vor Verklicken). Die Sperr‑Checkbox
-            bleibt sichtbar.
+            <strong>Programm‑Einstellungen:</strong> Der Zahnrad‑Schalter klappt
+            Typografie‑Regler und Zusatzaktionen ein oder aus. Das schützt vor
+            versehentlichem Verstellen.
           </li>
         </ul>
 
-        <h2 id="m-eingabe">6. Eingabe & Zähler</h2>
+        <h2 id="m-eingabe">6. Eingabe, Trennzeichen & Geschichten</h2>
         <ul>
           <li>
-            <strong>Zähler:</strong> Der Hinweis rechts zeigt die Anzahl
-            erkannter Einträge.
+            <strong>Zähler:</strong> Der Hinweis rechts zeigt die aktuell
+            erkannten Einträge.
+          </li>
+          <li>
+            <strong>Trennzeichen:</strong> Im Wortmodus kannst du gezielt nach
+            Leerzeichen, Zeilenumbrüchen, Kommas, Punkten, Doppelpunkten,
+            Satzzeichen und weiteren Varianten trennen.
           </li>
           <li><strong>Trim:</strong> Leere Einträge optional entfernen.</li>
           <li>
             <strong>Text‑Reset:</strong> Lädt Standardwörter bzw. die
-            Standardgeschichte (je nach Modus).
+            Standardgeschichte passend zum aktuellen Modus.
+          </li>
+          <li>
+            <strong>Text speichern:</strong> Speichert den aktuellen
+            Eingabetext als neue Geschichte. Als Vorschlag dient der bisherige
+            Geschichtenname oder die erste sinnvolle Zeile des Textes.
+          </li>
+          <li>
+            <strong>Eindeutige Namen:</strong> Gibt es einen Namen schon, legt
+            die App automatisch Varianten wie <code>(2)</code>,
+            <code>(3)</code> usw. an, statt etwas zu überschreiben.
           </li>
           <li>
             <strong>Geschichte hochladen:</strong> Importiert eine normale
-            Textdatei (<code>.txt</code>) in die lokale Geschichtenliste.
+            Textdatei (<code>.txt</code>) in die lokale Geschichtenliste. Vor
+            dem Speichern kannst du den vorgeschlagenen Namen noch anpassen.
           </li>
           <li>
-            <strong>Text speichern:</strong> Speichert den aktuell eingefuegten
-            oder hineinkopierten Text aus dem Eingabefeld als neue Geschichte.
+            <strong>Geschichte auswählen:</strong> Lädt den gespeicherten Text
+            direkt ins Eingabefeld, aktiviert den Satzmodus und startet die
+            Anzeige bei laufender Wiedergabe mit dem geladenen Inhalt neu.
           </li>
           <li>
-            <strong>Geschichte auswaehlen:</strong> Laedt den gespeicherten Text
-            direkt ins Eingabefeld und aktiviert den Satzmodus.
+            <strong>Geschichte löschen:</strong> Entfernt nur die aktuell
+            ausgewählte Geschichte nach einer Sicherheitsabfrage.
           </li>
           <li>
-            <strong>Geschichte loeschen:</strong> Entfernt nur die ausgewaehlte
-            Geschichte aus dem lokalen Speicher.
+            <strong>Bibliotheks‑Hinweis:</strong> Unter den Buttons siehst du,
+            ob keine Geschichte vorhanden ist, wie viele Geschichten gespeichert
+            sind oder welche Geschichte gerade ausgewählt ist. Bei Importen wird
+            zusätzlich der ursprüngliche Dateiname angezeigt.
           </li>
           <li>
-            <strong>Text leeren:</strong> Entfernt den aktuellen Eingabetext.
+            <strong>Bewusste Entkopplung:</strong> Änderst du den geladenen Text
+            oder wechselst in den Wortmodus, wird die aktuelle Auswahl gelöst.
+            So vermeidest du versehentliches Löschen oder falsche Zuordnung.
+          </li>
+          <li>
+            <strong>Text leeren:</strong> Entfernt nur den aktuellen
+            Eingabetext.
           </li>
         </ul>
 
-        <h2 id="m-steuerung">7. Abspiel‑Steuerung & Vollbild</h2>
+        <h2 id="m-steuerung">7. Abspiel‑Steuerung, Pause & Vollbild</h2>
         <ul>
           <li>
             <strong>Start:</strong> Öffnet sofort den
@@ -978,22 +1032,41 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             nach Möglichkeit vom Browser verdeckt).
           </li>
           <li>
-            <strong>Buttons im Vollbild:</strong> Unten mittig, mit dynamischem
-            Abstand zum Rand (Querformat näher am Rand als Hochformat).
+            <strong>Zurück / Nächstes:</strong> Beide Sprungtasten funktionieren
+            während der laufenden Wiedergabe und setzen die Anzeige danach
+            bewusst auf <em>Pause</em>, damit du kontrolliert weiterlesen
+            kannst.
           </li>
           <li>
-            <strong>Tastatur:</strong> Leertaste = Start/Stop, Pfeil rechts =
-            Nächstes, Escape = Vollbild schließen.
+            <strong>Pause / Weiter:</strong> Die Pause‑Taste wechselt zwischen
+            Pause‑ und Play‑Symbol und setzt an derselben Position fort.
+          </li>
+          <li>
+            <strong>Buttons im Vollbild:</strong> Unten mittig, mit dynamischem
+            Abstand zum Rand. Im Querformat sitzen sie etwas näher am Rand als
+            im Hochformat.
+          </li>
+          <li>
+            <strong>Handbuch öffnen:</strong> Klick unten auf
+            <strong>„❤️ Isabella Bachner ❤️“</strong>. Schließen geht über den
+            Button, per Klick auf den dunklen Hintergrund oder mit
+            <kbd>Esc</kbd>.
+          </li>
+          <li>
+            <strong>Tastatur:</strong> Leertaste = Start/Stopp, Pfeil links =
+            zurück, Pfeil rechts = nächstes, Escape = Vollbild oder Handbuch
+            schließen.
           </li>
         </ul>
 
-        <h2 id="m-speicher">8. Speichern, Reset & Standards</h2>
+        <h2 id="m-speicher">8. Speichern, Export, Installation & Standards</h2>
         <ul>
           <li>
             <strong>Automatisches Speichern:</strong> Einstellungen (Größe,
-            Gewicht, Kopplung, Schriftart, Intervall, Modus, Loop, Trim,
-            Satz/Wortmodus) sowie der jeweils letzte Text und alle importierten
-            Geschichten werden lokal gespeichert.
+            Gewicht, Kopplung, Schriftart, Lesezeit, Modus, Loop, Trim,
+            Trennzeichen, Satz/Wortmodus), die letzte Wortliste, die letzte
+            Geschichte, die komplette Geschichten‑Bibliothek und die aktuelle
+            Auswahl werden lokal gespeichert.
           </li>
           <li>
             <strong>Einstellungen zurücksetzen:</strong> Setzt nur
@@ -1005,20 +1078,43 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             Geschichte gespeichert, im Wortmodus die letzte Wortliste. Beim
             Wechsel wird der passende Inhalt automatisch geladen.
           </li>
+          <li>
+            <strong>Index HTML exportieren:</strong> Innerhalb der
+            <em>Programm‑Einstellungen</em> kannst du die originale HTML-Datei
+            exportieren. Dabei werden deine aktuellen lokalen Einstellungen und
+            gespeicherten Geschichten in die Exportdatei eingebettet.
+          </li>
+          <li>
+            <strong>App installieren / aktualisieren:</strong> In der
+            Browser-/PWA-Version blendet die App je nach Gerät einen
+            Installations- oder Aktualisierungshinweis ein. Bereits bekannte
+            installierte Versionen werden lokal gemerkt.
+          </li>
+          <li>
+            <strong>Nur lokal:</strong> Geschichten und Einstellungen bleiben
+            im lokalen Speicher des Browsers bzw. der App. Ohne Export oder
+            manuelles Teilen werden sie nicht automatisch auf andere Geräte
+            übertragen.
+          </li>
         </ul>
 
         <h2 id="m-shortcuts">9. Tastenkürzel</h2>
         <ul>
           <li><kbd>Leertaste</kbd> – Start/Stopp</li>
-          <li><kbd>Pfeil rechts</kbd> – Nächstes sofort</li>
-          <li><kbd>Esc</kbd> – Vollbild beenden</li>
+          <li><kbd>Pfeil links</kbd> – Zurück und pausieren</li>
+          <li><kbd>Pfeil rechts</kbd> – Nächstes und pausieren</li>
+          <li><kbd>Esc</kbd> – Vollbild oder Handbuch schließen</li>
         </ul>
 
         <h2 id="m-tipps">10. Trainings‑Tipps</h2>
         <ul>
           <li>
-            Starte mit kurzen Wörtern/Sätzen und steigere langsam die
-            Geschwindigkeit oder Satzlänge.
+            Starte mit kurzen Wörtern oder kurzen Sätzen und steigere langsam
+            die <em>Lesezeit pro Zeichen</em> oder die Textlänge.
+          </li>
+          <li>
+            Speichere unterschiedliche Geschichten mit klaren Namen, wenn du
+            mehrere Trainingsstände oder Themen getrennt üben möchtest.
           </li>
           <li>
             Im Querformat wird der verfügbare Platz maximiert – ideal fürs Lesen
@@ -1026,34 +1122,46 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           </li>
           <li>
             Nimm gemütliche Schriftgewichte (300–400) für lange Sessions;
-            verwende Monospace zum Zählen/Timing‑Gefühl.
+            verwende Monospace zum Zählen und für ein klares Timing‑Gefühl.
           </li>
         </ul>
 
         <h2 id="m-faq">11. FAQ</h2>
         <ul>
           <li>
-            <strong
-              >Warum wurde früher der erste Eintrag doppelt gezeigt?</strong
-            >
-            Behoben: Der Index wird bei Zeitablauf zuerst erhöht und erst dann
-            angezeigt.
+            <strong>Warum ist plötzlich keine Geschichte mehr ausgewählt?</strong>
+            Die Auswahl wird bewusst gelöst, wenn der Text nicht mehr exakt zur
+            gespeicherten Geschichte passt oder wenn du in den Wortmodus
+            wechselst.
           </li>
           <li>
-            <strong>Der Countdown passt nicht?</strong> Im Satzmodus basiert er
-            auf Zeichenzahl × 0,5 s (ohne Leerzeichen). Im Wortmodus entspricht
-            er dem eingestellten Intervall.
+            <strong>Wird beim Speichern eine Geschichte überschrieben?</strong>
+            Nein. Gleiche Namen werden automatisch als neue Variante mit
+            Nummerierung gespeichert.
+          </li>
+          <li>
+            <strong>Der Countdown passt nicht?</strong> Die Zeit berechnet sich
+            aus der Anzahl der Zeichen ohne Leerzeichen multipliziert mit der
+            eingestellten <em>Lesezeit pro Zeichen</em>.
+          </li>
+          <li>
+            <strong>Warum sehe ich Export oder Installationshinweise nicht immer?</strong>
+            Diese Bereiche erscheinen nur in passenden Umgebungen. Der
+            HTML-Export steckt zusätzlich in den eingeklappten
+            <em>Programm‑Einstellungen</em>.
           </li>
           <li>
             <strong>Wird etwas online gespeichert?</strong> Nein, ausschließlich
-            lokal im Browser (<em>localStorage</em>).
+            lokal im Browser oder in der App.
           </li>
         </ul>
 
         <h2 id="m-datenschutz">12. Datenschutz</h2>
         <p>
-          Alle Daten (Texte & Einstellungen) bleiben lokal auf deinem Gerät. Es
-          findet keine Übertragung an Server statt.
+          Alle Daten (Texte, Geschichten, Einstellungen und Installationsmerker)
+          bleiben lokal auf deinem Gerät. Es findet keine Übertragung an Server
+          statt. Wenn du eine exportierte HTML-Datei weitergibst, enthält diese
+          bewusst deine eingebetteten lokalen Daten.
         </p>
       </div>
     </div>
@@ -1158,7 +1266,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             "wortabspieler.installedWebVersion";
           const TIMER_LABEL = "Lesezeit";
           const HTML_EXPORT_STATUS_MS = 3600;
-          const SW_VERSION = "blitzlesen-isabella-v39";
+          const SW_VERSION = "blitzlesen-isabella-v40";
           const DEFAULT_MODE = "sequential";
           const DEFAULT_INTERVAL = 0.5;
           const DEFAULT_SIZE = 28;
@@ -3257,7 +3365,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         else onReady();
       })();
     </script>
-    <footer class="footer-note" data-app-version="39">
+    <footer class="footer-note" data-app-version="40">
       <span class="footer-name" role="button" tabindex="0"
         >❤️ Isabella Bachner ❤️</span
       >
