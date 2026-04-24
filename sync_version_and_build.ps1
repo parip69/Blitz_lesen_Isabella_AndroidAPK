@@ -108,6 +108,24 @@ function Set-IndexVersion {
     Write-Utf8NoBom -Path $Path -Content $content
 }
 
+function Sync-VersionForNextBuild {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$VersionFilePath,
+        [Parameter(Mandatory = $true)]
+        [string]$IndexFilePath
+    )
+
+    $currentVersionCode = Get-CurrentVersionCode -Path $VersionFilePath
+    $nextVersionCode = $currentVersionCode + 1
+    $nextVersionName = $nextVersionCode.ToString()
+
+    Set-VersionProperties -Path $VersionFilePath -VersionCode $nextVersionCode -VersionName $nextVersionName
+    Set-IndexVersion -Path $IndexFilePath -VersionName $nextVersionName
+
+    return $nextVersionName
+}
+
 function Invoke-WebAssetSync {
     param(
         [Parameter(Mandatory = $true)]
@@ -144,12 +162,7 @@ function Find-VersionedApk {
 Push-Location $scriptRoot
 try {
     if ($SkipBuild) {
-        $currentVersionCode = Get-CurrentVersionCode -Path $versionFile
-        $nextVersionCode = $currentVersionCode + 1
-        $nextVersionName = $nextVersionCode.ToString()
-
-        Set-VersionProperties -Path $versionFile -VersionCode $nextVersionCode -VersionName $nextVersionName
-        Set-IndexVersion -Path $indexFile -VersionName $nextVersionName
+        $nextVersionName = Sync-VersionForNextBuild -VersionFilePath $versionFile -IndexFilePath $indexFile
         Invoke-WebAssetSync -GradlewPath $gradlewBat
 
         Write-Host "Version auf $nextVersionName synchronisiert."
@@ -162,6 +175,8 @@ try {
         throw "gradlew.bat nicht gefunden: $gradlewBat"
     }
 
+    $nextVersionName = Sync-VersionForNextBuild -VersionFilePath $versionFile -IndexFilePath $indexFile
+
     & $gradlewBat assembleDebug
     if ($LASTEXITCODE -ne 0) {
         throw "Gradle-Build fehlgeschlagen."
@@ -170,6 +185,9 @@ try {
     Invoke-WebAssetSync -GradlewPath $gradlewBat
 
     $builtVersionName = Get-CurrentVersionName -Path $versionFile
+    if ($builtVersionName -ne $nextVersionName) {
+        throw "Build-Version stimmt nicht mit der vorbereiteten Version ueberein: erwartet $nextVersionName, erhalten $builtVersionName."
+    }
     Write-Host "Build hat Version $builtVersionName erstellt."
 
     New-Item -ItemType Directory -Force -Path $privatDir | Out-Null

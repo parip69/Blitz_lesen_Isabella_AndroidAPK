@@ -33,6 +33,8 @@ Debug-Build:
 .\gradlew.bat assembleDebug
 ```
 
+Dieser Weg baut mit der aktuell eingetragenen Version aus `version.properties` und erhoeht sie nicht automatisch.
+
 Nur Web-Assets und `docs/` synchronisieren:
 
 ```powershell
@@ -44,3 +46,5 @@ Version synchronisieren, APK bauen und archivieren:
 ```powershell
 .\sync_version_and_build.bat
 ```
+
+Dieser Weg erhoeht die Version kontrolliert vor dem Build, synchronisiert die Web-Assets und legt danach die Archivkopien an.

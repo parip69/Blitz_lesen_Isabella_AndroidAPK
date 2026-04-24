@@ -36,14 +36,11 @@ Nutzen fuer:
 
 Dieses Skript:
 
+- erhoeht die Version kontrolliert vor dem Build
 - baut die Debug-APK
 - synchronisiert danach sicherheitshalber noch einmal die Web-Assets
 - archiviert HTML und APK in `Privat/`
 - kann mit `-SkipBuild` nur die Versionsdateien und Web-Assets aktualisieren
-
-Hinweis:
-
-- Die eigentliche Build-Version wird in diesem Projekt ueber die Gradle-Logik beim Build hochgezogen.
 
 Nutzen fuer:
 
@@ -56,6 +53,7 @@ Nutzen fuer:
 - Nicht nur `docs/` bearbeiten
 - Immer `app/src/main/assets/` als Quelle aendern
 - Danach mindestens `.\sync_web_assets.bat` oder `.\gradlew.bat assembleDebug` ausfuehren
+- Fuer eine neue verteilte APK-Version `.\sync_version_and_build.bat` verwenden
 - Danach pruefen, dass die Aenderung auch in `docs/` angekommen ist
 
 ## Was fuer iPhone wichtig ist

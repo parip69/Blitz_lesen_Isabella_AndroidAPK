@@ -1,20 +1,18 @@
-RechenGuru LGI Android-Projekt (Version 183)
+Blitz_lesen_Isabella_AndroidAPK (Version 36)
 
-Das ist ein fertiges Android-Studio-Projekt für eine APK auf Basis deiner HTML-Datei.
+Dieses Repository enthaelt ein Android-Studio-Projekt fuer einen nativen Wrapper
+um die lokale Web-App aus `app/src/main/assets/index.html`.
 
-So baust du die APK:
-1. Android Studio installieren
-2. Diesen Ordner in Android Studio öffnen
-3. Warten bis Gradle synchronisiert ist
-4. Menü: Build > Build APK(s)
-5. Danach liegt die Debug-APK typischerweise unter:
-   app/build/outputs/apk/debug/app-debug.apk
+Build:
+1. Android Studio und JDK 17 installieren
+2. Android SDK Platform 35 samt Build-Tools bereitstellen
+3. Projektordner in Android Studio oeffnen oder `local.properties` mit `sdk.dir=...` anlegen
+4. Fuer einen normalen Debug-Build `.\gradlew.bat assembleDebug` ausfuehren
+5. Die APK liegt danach unter `app/build/outputs/apk/debug/BlitzLesen-v36.apk`
 
-Hinweise:
-- Die HTML wird offline aus den Android-Assets geladen
-- JavaScript und DOM Storage sind aktiviert
-- Die App ist auf Hochformat gestellt
-- Dateiname/Version wurde auf 183 gesetzt
+Versionierter Build mit Archivkopien:
+- `.\sync_version_and_build.bat` erhoeht die Version kontrolliert vor dem Build
+- danach werden Web-Assets synchronisiert und HTML/APK nach `Privat/` kopiert
 
-Wenn du eine signierte Release-APK willst:
-- Build > Generate Signed Bundle / APK
+Nur Web-/PWA-Assets synchronisieren:
+- `.\sync_web_assets.bat`
