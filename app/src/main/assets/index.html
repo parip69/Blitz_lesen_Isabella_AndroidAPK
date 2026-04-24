@@ -181,6 +181,12 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         cursor: not-allowed;
       }
 
+      .story-select {
+        min-width: 220px;
+        max-width: 320px;
+        flex: 1 1 220px;
+      }
+
       #installHintCard .install-actions {
         display: flex;
         flex-direction: column;
@@ -248,7 +254,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
       .bigout span {
         display: inline-block;
         transform: translateZ(0);
-        white-space: normal;
+        white-space: pre-wrap;
         overflow-wrap: anywhere;
         word-break: break-word;
       }
@@ -666,11 +672,28 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           <div class="row">
             <button class="btn" id="textReset">Text‑Reset (Standard)</button>
             <button class="btn" id="clear">Text leeren</button>
-            <button class="btn" id="reset">Reset (alles)</button>
+            <select
+              id="storySelect"
+              class="story-select"
+              aria-label="Gespeicherte Geschichte auswaehlen"
+            >
+              <option value="">Geschichte auswaehlen...</option>
+            </select>
+            <button class="btn" id="uploadStoryBtn" type="button">
+              Geschichte hochladen
+            </button>
+            <button class="btn" id="deleteStoryBtn" type="button" disabled>
+              Geschichte loeschen
+            </button>
+            <button class="btn" id="reset">Einstellungen zuruecksetzen</button>
+            <input id="storyFileInput" type="file" accept=".txt,text/plain" hidden />
           </div>
           <div class="hint">
             <span class="count" id="count">0</span> Einträge erkannt
           </div>
+        </div>
+        <div class="hint" id="storyLibraryHint" style="margin-top: 6px">
+          Keine gespeicherten Geschichten vorhanden.
         </div>
 
         <div class="row" style="margin-top: 8px">
@@ -924,6 +947,18 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             Standardgeschichte (je nach Modus).
           </li>
           <li>
+            <strong>Geschichte hochladen:</strong> Importiert eine normale
+            Textdatei (<code>.txt</code>) in die lokale Geschichtenliste.
+          </li>
+          <li>
+            <strong>Geschichte auswaehlen:</strong> Laedt den gespeicherten Text
+            direkt ins Eingabefeld und aktiviert den Satzmodus.
+          </li>
+          <li>
+            <strong>Geschichte loeschen:</strong> Entfernt nur die ausgewaehlte
+            Geschichte aus dem lokalen Speicher.
+          </li>
+          <li>
             <strong>Text leeren:</strong> Entfernt den aktuellen Eingabetext.
           </li>
         </ul>
@@ -950,12 +985,13 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           <li>
             <strong>Automatisches Speichern:</strong> Einstellungen (Größe,
             Gewicht, Kopplung, Schriftart, Intervall, Modus, Loop, Trim,
-            Satz/Wortmodus) sowie der jeweils letzte Text werden lokal
-            gespeichert.
+            Satz/Wortmodus) sowie der jeweils letzte Text und alle importierten
+            Geschichten werden lokal gespeichert.
           </li>
           <li>
-            <strong>Reset (alles):</strong> Löscht alle Einstellungen und setzt
-            den Text auf Standardwörter zurück.
+            <strong>Einstellungen zurücksetzen:</strong> Setzt nur
+            Geschwindigkeit, Anzeige und Bedienoptionen auf Standardwerte
+            zurück. Texte und gespeicherte Geschichten bleiben erhalten.
           </li>
           <li>
             <strong>Modusbewusster Text:</strong> Im Satzmodus wird die letzte
@@ -1090,6 +1126,11 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           const installHintCard = $("#installHintCard");
           const installBtn = $("#installBtn");
           const installHint = $("#installHint");
+          const storySelectEl = need("#storySelect", "storySelect");
+          const uploadStoryBtn = need("#uploadStoryBtn", "uploadStoryBtn");
+          const deleteStoryBtn = need("#deleteStoryBtn", "deleteStoryBtn");
+          const storyFileInputEl = need("#storyFileInput", "storyFileInput");
+          const storyLibraryHintEl = $("#storyLibraryHint");
 
           if (!inputEl || !outputBox || !countEl) {
             console.error(
@@ -1100,12 +1141,23 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
 
           const APP_NAME_FALLBACK = "Blitz lesen";
           const APP_VERSION_FALLBACK = "1";
-          const STORAGE_KEY = "wortabspieler.settings.v13";
+          const STORAGE_KEY = "wortabspieler.settings.v14";
+          const LEGACY_STORAGE_KEYS = [
+            "wortabspieler.settings.v13",
+            "wortabspieler.settings.v12",
+          ];
           const INSTALLED_WEB_VERSION_STORAGE_KEY =
             "wortabspieler.installedWebVersion";
           const TIMER_LABEL = "Lesezeit";
           const HTML_EXPORT_STATUS_MS = 3600;
-          const SW_VERSION = "blitzlesen-isabella-v36";
+          const SW_VERSION = "blitzlesen-isabella-v37";
+          const DEFAULT_MODE = "sequential";
+          const DEFAULT_INTERVAL = 0.5;
+          const DEFAULT_SIZE = 28;
+          const DEFAULT_LOOP = true;
+          const DEFAULT_TRIM = false;
+          const DEFAULT_FAMILY = "system";
+          const DEFAULT_SEPARATOR = "space";
           const footerNote = $(".footer-note");
           let exportStatusResetTimer = null;
           let deferredPrompt = null;
@@ -1825,6 +1877,205 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           let countdownDeadline = 0;
           let autoCalib = { baseSize: null, delta: 0 };
           let settingsCollapsed = true;
+          let stories = [];
+          let selectedStoryId = null;
+
+          function createStoryId() {
+            try {
+              if (
+                window.crypto &&
+                typeof window.crypto.randomUUID === "function"
+              ) {
+                return window.crypto.randomUUID();
+              }
+            } catch (e) {}
+
+            return `story_${Date.now().toString(36)}_${Math.random()
+              .toString(36)
+              .slice(2, 10)}`;
+          }
+
+          function normalizeStoryName(name, fallback = "Neue Geschichte") {
+            const cleaned = String(name || "")
+              .replace(/\s+/g, " ")
+              .trim();
+            return cleaned || fallback;
+          }
+
+          function baseStoryNameFromFile(fileName) {
+            const cleanFileName = String(fileName || "").trim();
+            if (!cleanFileName) return "Neue Geschichte";
+            return normalizeStoryName(
+              cleanFileName.replace(/\.[^.]+$/, ""),
+              "Neue Geschichte",
+            );
+          }
+
+          function sortStoriesByName(items) {
+            return [...items].sort((left, right) =>
+              String(left.name || "").localeCompare(String(right.name || ""), "de", {
+                sensitivity: "base",
+                numeric: true,
+              }),
+            );
+          }
+
+          function normalizeStories(rawStories) {
+            if (!Array.isArray(rawStories)) return [];
+            const seenIds = new Set();
+
+            return sortStoriesByName(
+              rawStories
+                .map((story, index) => {
+                  if (!story || typeof story !== "object") return null;
+                  const content =
+                    typeof story.content === "string"
+                      ? story.content
+                      : typeof story.text === "string"
+                        ? story.text
+                        : "";
+                  if (!content.trim()) return null;
+
+                  const fileName =
+                    typeof story.fileName === "string"
+                      ? story.fileName.trim()
+                      : "";
+                  const fallbackName = fileName
+                    ? baseStoryNameFromFile(fileName)
+                    : `Geschichte ${index + 1}`;
+                  const name = normalizeStoryName(story.name, fallbackName);
+                  let id =
+                    typeof story.id === "string" && story.id.trim()
+                      ? story.id.trim()
+                      : createStoryId();
+                  if (seenIds.has(id)) id = createStoryId();
+                  seenIds.add(id);
+
+                  return {
+                    id,
+                    name,
+                    content,
+                    fileName,
+                    updatedAt:
+                      typeof story.updatedAt === "string" && story.updatedAt.trim()
+                        ? story.updatedAt.trim()
+                        : new Date().toISOString(),
+                  };
+                })
+                .filter(Boolean),
+            );
+          }
+
+          function getStoryById(storyId) {
+            if (!storyId) return null;
+            return stories.find((story) => story.id === storyId) || null;
+          }
+
+          function buildUniqueStoryName(name, ignoreId = null) {
+            const baseName = normalizeStoryName(name);
+            const usedNames = new Set(
+              stories
+                .filter((story) => story.id !== ignoreId)
+                .map((story) =>
+                  String(story.name || "").trim().toLocaleLowerCase("de"),
+                ),
+            );
+            if (!usedNames.has(baseName.toLocaleLowerCase("de"))) return baseName;
+
+            let counter = 2;
+            let candidate = `${baseName} (${counter})`;
+            while (usedNames.has(candidate.toLocaleLowerCase("de"))) {
+              counter += 1;
+              candidate = `${baseName} (${counter})`;
+            }
+            return candidate;
+          }
+
+          function updateStoryLibraryUi() {
+            if (!storySelectEl) return;
+
+            const selectedStory = getStoryById(selectedStoryId);
+            const sortedStories = sortStoriesByName(stories);
+            storySelectEl.innerHTML = "";
+
+            const placeholderOption = document.createElement("option");
+            placeholderOption.value = "";
+            placeholderOption.textContent =
+              sortedStories.length > 0
+                ? "Geschichte auswaehlen..."
+                : "Keine Geschichte gespeichert";
+            storySelectEl.appendChild(placeholderOption);
+
+            sortedStories.forEach((story) => {
+              const option = document.createElement("option");
+              option.value = story.id;
+              option.textContent = story.name;
+              storySelectEl.appendChild(option);
+            });
+
+            storySelectEl.disabled = sortedStories.length === 0;
+            storySelectEl.value = selectedStory ? selectedStory.id : "";
+            if (deleteStoryBtn) deleteStoryBtn.disabled = !selectedStory;
+
+            if (storyLibraryHintEl) {
+              if (!sortedStories.length) {
+                storyLibraryHintEl.textContent =
+                  "Keine gespeicherten Geschichten vorhanden.";
+              } else if (selectedStory) {
+                storyLibraryHintEl.textContent = selectedStory.fileName
+                  ? `Ausgewaehlt: ${selectedStory.name} (${selectedStory.fileName})`
+                  : `Ausgewaehlt: ${selectedStory.name}`;
+              } else if (sortedStories.length === 1) {
+                storyLibraryHintEl.textContent =
+                  "1 gespeicherte Geschichte verfuegbar.";
+              } else {
+                storyLibraryHintEl.textContent = `${sortedStories.length} gespeicherte Geschichten verfuegbar.`;
+              }
+            }
+          }
+
+          function syncSelectedStoryToCurrentInput() {
+            const selectedStory = getStoryById(selectedStoryId);
+            const isStoryMode = !!(sentenceModeEl && sentenceModeEl.checked);
+            const inputValue = String(inputEl?.value || "");
+            if (!selectedStory || !isStoryMode || inputValue !== selectedStory.content) {
+              selectedStoryId = null;
+            }
+            updateStoryLibraryUi();
+          }
+
+          function readStoryFileAsText(file) {
+            if (!file) {
+              return Promise.reject(new Error("Keine Datei ausgewaehlt."));
+            }
+
+            if (typeof file.text === "function") {
+              return file.text();
+            }
+
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(String(reader.result || ""));
+              reader.onerror = () =>
+                reject(reader.error || new Error("Datei konnte nicht gelesen werden."));
+              reader.readAsText(file);
+            });
+          }
+
+          function loadStoryIntoInput(story, { shouldSave = true } = {}) {
+            if (!story) return;
+            selectedStoryId = story.id;
+            if (sentenceModeEl) sentenceModeEl.checked = true;
+            updateSentenceModeLabel();
+            inputEl.value = story.content;
+            parseInput();
+            updateStoryLibraryUi();
+            if (shouldSave) saveSettings();
+            if (statusEl) statusEl.textContent = `Geschichte geladen: ${story.name}`;
+            inputEl.focus();
+            fitAll();
+            if (running) start(false);
+          }
 
           function fitBox(box) {
             if (!box) return;
@@ -1866,9 +2117,14 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           function migrateOld() {
             try {
               if (!localStorage.getItem(STORAGE_KEY)) {
-                const v12 = localStorage.getItem("wortabspieler.settings.v12");
-                if (v12) {
-                  localStorage.setItem(STORAGE_KEY, v12);
+                const legacyKey = LEGACY_STORAGE_KEYS.find((key) =>
+                  localStorage.getItem(key),
+                );
+                const legacyValue = legacyKey
+                  ? localStorage.getItem(legacyKey)
+                  : null;
+                if (legacyValue) {
+                  localStorage.setItem(STORAGE_KEY, legacyValue);
                 }
               }
             } catch (e) {
@@ -1889,32 +2145,36 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           function saveSettings() {
             try {
               const current = loadSettings() || {};
-              const textNow = (inputEl.value || "").trim();
+              const textNow = String(inputEl.value || "");
               const sentenceMode = !!(sentenceModeEl && sentenceModeEl.checked);
               const data = {
                 ...current,
                 ...(sentenceMode
                   ? { storyText: textNow }
                   : { wordText: textNow }),
+                stories,
+                selectedStoryId,
                 mode:
                   document.querySelector('input[name="mode"]:checked')?.value ||
                   current.mode ||
-                  "sequential",
+                  DEFAULT_MODE,
                 loop: !!(loopEl && loopEl.checked),
                 trim: !!$("#trim")?.checked,
-                interval: Number(intervalEl?.value || current.interval || 0.5),
-                size: Number(sizeEl?.value || current.size || 60),
+                interval: Number(
+                  intervalEl?.value || current.interval || DEFAULT_INTERVAL,
+                ),
+                size: Number(sizeEl?.value || current.size || DEFAULT_SIZE),
                 weight: Number(weightEl?.value || current.weight || 300),
                 autoWeight: !!(autoWeightEl && autoWeightEl.checked),
                 lockUi: settingsCollapsed,
-                family: familyEl?.value || current.family || "system",
+                family: familyEl?.value || current.family || DEFAULT_FAMILY,
                 autoCalibBase: autoCalib.baseSize,
                 autoCalibDelta: autoCalib.delta,
                 sentenceMode: sentenceMode,
                 separator:
                   (separatorEl && separatorEl.value) ||
                   current.separator ||
-                  "space",
+                  DEFAULT_SEPARATOR,
               };
               localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
             } catch (e) {
@@ -1948,23 +2208,26 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
 
           function applySettings(s) {
             const s2 = s || {};
+            stories = normalizeStories(s2.stories);
+            selectedStoryId =
+              typeof s2.selectedStoryId === "string" ? s2.selectedStoryId : null;
             const sentenceMode = !!s2.sentenceMode;
             if (sentenceModeEl) sentenceModeEl.checked = sentenceMode;
             updateSentenceModeLabel();
-            const mode = s2.mode || "sequential";
+            const mode = s2.mode || DEFAULT_MODE;
             const modeEl = document.querySelector(
               `input[name="mode"][value="${mode}"]`,
             );
             if (modeEl) modeEl.checked = true;
-            if (loopEl) loopEl.checked = s2.loop ?? true;
+            if (loopEl) loopEl.checked = s2.loop ?? DEFAULT_LOOP;
             const trimEl = $("#trim");
-            if (trimEl) trimEl.checked = s2.trim ?? false;
-            const itv = Number(s2.interval ?? 0.5);
+            if (trimEl) trimEl.checked = s2.trim ?? DEFAULT_TRIM;
+            const itv = Number(s2.interval ?? DEFAULT_INTERVAL);
             intervalEl.value = String(itv);
             intervalRangeEl.value = String(itv);
             const intervalVal = $("#intervalVal");
             if (intervalVal) intervalVal.textContent = `${itv}s`;
-            const size = Number(s2.size ?? 28);
+            const size = Number(s2.size ?? DEFAULT_SIZE);
             sizeEl.value = String(size);
             if (sizeValEl) sizeValEl.textContent = `${size}px`;
             const autoW =
@@ -1974,7 +2237,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
               typeof s2.lockUi === "boolean" ? s2.lockUi : true;
             autoCalib.baseSize = s2.autoCalibBase ?? null;
             autoCalib.delta = Number(s2.autoCalibDelta ?? 0);
-            if (separatorEl) separatorEl.value = s2.separator || "space";
+            if (separatorEl) separatorEl.value = s2.separator || DEFAULT_SEPARATOR;
             inputEl.value = getTextForMode(s2);
             let weight;
             if (autoW) {
@@ -1987,9 +2250,10 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             weightEl.value = String(weight);
             if (weightValEl) weightValEl.textContent = String(weight);
             applyTypography(size, weight);
-            const family = s2.family || "system";
+            const family = s2.family || DEFAULT_FAMILY;
             familyEl.value = family;
             applyFamily(family);
+            syncSelectedStoryToCurrentInput();
             updateVisibility();
             fitAll();
           }
@@ -2159,9 +2423,11 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           function splitSentences(text) {
             if (!text) return [];
             // Use lookbehind to split after punctuation or newlines, keeping the punctuation.
-            // Newlines are effectively delimiters and will be filtered out after trimming.
+            // Newlines are effectively delimiters; inner formatting should stay preserved.
             const segments = text.split(/(?<=[.!?…\n])/g);
-            return segments.map((s) => s.trim()).filter(Boolean);
+            return segments
+              .map((segment) => String(segment || "").replace(/\r/g, ""))
+              .filter((segment) => segment.trim().length > 0);
           }
 
           function parseInput() {
@@ -2506,11 +2772,13 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           // Bindings
           inputEl.addEventListener("input", () => {
             parseInput();
+            syncSelectedStoryToCurrentInput();
             debouncedSave();
             fitAll();
           });
           inputEl.addEventListener("change", () => {
             parseInput();
+            syncSelectedStoryToCurrentInput();
             saveSettings();
             fitAll();
           });
@@ -2532,6 +2800,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             const s = loadSettings() || {};
             inputEl.value = getTextForMode(s);
             parseInput();
+            syncSelectedStoryToCurrentInput();
             saveSettings();
             if (running) start(false);
             fitAll();
@@ -2630,6 +2899,92 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
               saveSettings();
             });
 
+          storySelectEl.addEventListener("change", () => {
+            const story = getStoryById(storySelectEl.value);
+            if (!story) {
+              selectedStoryId = null;
+              updateStoryLibraryUi();
+              saveSettings();
+              if (statusEl) statusEl.textContent = "Keine Geschichte ausgewaehlt.";
+              return;
+            }
+
+            loadStoryIntoInput(story);
+          });
+
+          uploadStoryBtn.addEventListener("click", () => {
+            if (!storyFileInputEl) return;
+            storyFileInputEl.value = "";
+            storyFileInputEl.click();
+          });
+
+          storyFileInputEl.addEventListener("change", async () => {
+            const file = storyFileInputEl.files && storyFileInputEl.files[0];
+            if (!file) return;
+
+            const originalButtonLabel = uploadStoryBtn.textContent;
+            uploadStoryBtn.disabled = true;
+            uploadStoryBtn.textContent = "Laedt...";
+
+            try {
+              const rawText = await readStoryFileAsText(file);
+              const content = String(rawText || "").replace(/\r\n?/g, "\n");
+              if (!content.trim()) {
+                alert("Die ausgewaehlte Textdatei ist leer.");
+                return;
+              }
+
+              const suggestedName = baseStoryNameFromFile(file.name);
+              const requestedName = window.prompt(
+                "Name fuer die Geschichte:",
+                suggestedName,
+              );
+              if (requestedName === null) return;
+
+              const finalName = buildUniqueStoryName(
+                normalizeStoryName(requestedName, suggestedName),
+              );
+              const story = {
+                id: createStoryId(),
+                name: finalName,
+                content,
+                fileName: String(file.name || "").trim(),
+                updatedAt: new Date().toISOString(),
+              };
+
+              stories = sortStoriesByName([...stories, story]);
+              loadStoryIntoInput(story);
+              if (statusEl) statusEl.textContent = `Geschichte importiert: ${finalName}`;
+            } catch (error) {
+              console.warn("Geschichte konnte nicht importiert werden:", error);
+              alert(
+                `Die Textdatei konnte nicht gelesen werden: ${error.message || error}`,
+              );
+            } finally {
+              uploadStoryBtn.disabled = false;
+              uploadStoryBtn.textContent = originalButtonLabel;
+              storyFileInputEl.value = "";
+            }
+          });
+
+          deleteStoryBtn.addEventListener("click", () => {
+            const story = getStoryById(selectedStoryId || storySelectEl.value);
+            if (!story) return;
+
+            const shouldDelete = window.confirm(
+              `Geschichte "${story.name}" wirklich loeschen?`,
+            );
+            if (!shouldDelete) return;
+
+            stories = stories.filter((entry) => entry.id !== story.id);
+            if (selectedStoryId === story.id) {
+              selectedStoryId = null;
+            }
+            updateStoryLibraryUi();
+            saveSettings();
+            if (statusEl) statusEl.textContent = `Geschichte geloescht: ${story.name}`;
+          });
+
           startBtn.addEventListener("click", () => start(true));
           stopBtn.addEventListener("click", stop);
           prevBtn.addEventListener("click", prevNow);
@@ -2645,6 +3000,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           clearBtn.addEventListener("click", () => {
             inputEl.value = "";
             parseInput();
+            syncSelectedStoryToCurrentInput();
             saveSettings();
             if (statusEl) statusEl.textContent = "Text geleert.";
             inputEl.focus();
@@ -2657,29 +3013,43 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
               inputEl.value = DEFAULT_WORDS.join(", ");
             }
             parseInput();
+            syncSelectedStoryToCurrentInput();
             saveSettings();
             if (statusEl) statusEl.textContent = "Text auf Standard gesetzt.";
             fitAll();
           });
           resetBtn.addEventListener("click", () => {
-            try {
-              localStorage.removeItem(STORAGE_KEY);
-            } catch (e) {
-              console.warn("Storage flush fehlgeschlagen", e);
-            }
-            applySettings(null);
-            if (sentenceModeEl) sentenceModeEl.checked = false;
-            inputEl.value = DEFAULT_WORDS.join(", ");
-            sizeEl.value = "28";
-            if (sizeValEl) sizeValEl.textContent = "28px";
-            weightEl.value = "200";
-            if (weightValEl) weightValEl.textContent = "200";
+            const defaultWeight = computeAutoWeight(DEFAULT_SIZE);
+            const defaultModeEl = document.querySelector(
+              `input[name="mode"][value="${DEFAULT_MODE}"]`,
+            );
+            if (defaultModeEl) defaultModeEl.checked = true;
+            if (loopEl) loopEl.checked = DEFAULT_LOOP;
+            const trimEl = $("#trim");
+            if (trimEl) trimEl.checked = DEFAULT_TRIM;
+            intervalEl.value = String(DEFAULT_INTERVAL);
+            intervalRangeEl.value = String(DEFAULT_INTERVAL);
+            const intervalVal = $("#intervalVal");
+            if (intervalVal) intervalVal.textContent = `${DEFAULT_INTERVAL}s`;
+            sizeEl.value = String(DEFAULT_SIZE);
+            if (sizeValEl) sizeValEl.textContent = `${DEFAULT_SIZE}px`;
+            weightEl.value = String(defaultWeight);
+            if (weightValEl) weightValEl.textContent = String(defaultWeight);
             if (autoWeightEl) autoWeightEl.checked = true;
+            autoCalib.baseSize = null;
+            autoCalib.delta = 0;
+            if (familyEl) familyEl.value = DEFAULT_FAMILY;
+            if (separatorEl) separatorEl.value = DEFAULT_SEPARATOR;
             settingsCollapsed = true;
+            applyTypography(DEFAULT_SIZE, defaultWeight);
             updateVisibility();
             parseInput();
             saveSettings();
-            if (statusEl) statusEl.textContent = "Zurückgesetzt auf Standard.";
+            if (running) start(false);
+            if (statusEl)
+              statusEl.textContent =
+                "Einstellungen auf Standardwerte zurueckgesetzt.";
+            fitAll();
           });
 
           window.addEventListener("beforeunload", saveSettings);
@@ -2812,7 +3182,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         else onReady();
       })();
     </script>
-    <footer class="footer-note" data-app-version="36">
+    <footer class="footer-note" data-app-version="37">
       <span class="footer-name" role="button" tabindex="0"
         >❤️ Isabella Bachner ❤️</span
       >
