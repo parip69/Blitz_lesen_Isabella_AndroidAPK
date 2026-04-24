@@ -6,6 +6,7 @@ Diese Datei beschreibt den festen Ablauf fuer dieses Projekt, damit Web-App, PWA
 
 - `app/src/main/assets/` ist die Quelle
 - `docs/` ist die Auslieferung
+- `Privat/` ist Teil des Repositories und wird bei Commit/Push mit hochgeladen
 
 Das gilt fuer:
 
@@ -40,6 +41,7 @@ Dieses Skript:
 - baut die Debug-APK
 - synchronisiert danach sicherheitshalber noch einmal die Web-Assets
 - archiviert HTML und APK in `Privat/`
+- laesst diese Archivdateien bewusst im Repository, damit sie mit hochgeladen werden koennen
 - kann mit `-SkipBuild` nur die Versionsdateien und Web-Assets aktualisieren
 
 Nutzen fuer:

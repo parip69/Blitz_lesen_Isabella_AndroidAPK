@@ -29,6 +29,7 @@ Version synchronisieren, APK bauen und Archivdateien erstellen:
 - Erst `app/src/main/assets/` aendern
 - Dann `docs/` synchronisieren
 - `apple-touch-icon.png` fuer iPhone immer mitpruefen
+- `Privat/` gehoert mit ins Repository, weil dort APK- und HTML-Archivdateien liegen
 
 ## Die wichtigsten Begleitdateien
 

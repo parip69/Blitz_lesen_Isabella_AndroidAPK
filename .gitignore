@@ -11,6 +11,4 @@ local.properties
 /.vscode/
 /.agent/
 
-# Lokale Sicherungen
-/Privat/BlitzLesen-v*.apk
-/Privat/Blitzlesen_v*.html
+# Archivdateien unter Privat/ gehoeren bewusst ins Repository.

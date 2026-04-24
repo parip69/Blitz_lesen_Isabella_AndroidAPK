@@ -17,6 +17,7 @@ Dieses Projekt folgt einem festen Muster:
 - `sw.js` entscheidet mit, ob eine installierte PWA neue Aenderungen wirklich zieht
 - Fuer reine Web-/PWA-Aenderungen ist `.\sync_web_assets.bat` der schnelle Sync
 - Fuer verteilte Versionen ist `.\sync_version_and_build.bat` der Standardweg
+- `Privat/` ist Teil des Repositories und soll beim Commit/Push mit hochgeladen werden, weil dort APK- und HTML-Archivstaende liegen
 
 ## Wichtige Dateien
 
@@ -48,3 +49,4 @@ Version synchronisieren, APK bauen und archivieren:
 ```
 
 Dieser Weg erhoeht die Version kontrolliert vor dem Build, synchronisiert die Web-Assets und legt danach die Archivkopien an.
+Diese Archivdateien unter `Privat/` sollen anschliessend ebenfalls im Repository bleiben.
