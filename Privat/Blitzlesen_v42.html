@@ -1,0 +1,3577 @@
+<!--
+GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
+-->
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#152235" />
+    <meta name="application-name" content="Blitz lesen" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="Blitz lesen" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+    <title>Wort‑ & Satz‑Abspieler</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --muted: #94a3b8;
+        --text: #e5e7eb;
+        --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        --border: rgba(255, 255, 255, 0.08);
+        --accent: #f59e0b;
+        --accent-soft: rgba(245, 158, 11, 0.45);
+        --accent-glow: rgba(245, 158, 11, 0.22);
+        --accent-bg: rgba(245, 158, 11, 0.06);
+        /* Vollbild-Abstände */
+        --ov-top-gap: 10px;
+        --bar-height: 64px;
+        /* reale Buttonhöhe im Overlay, wird gemessen */
+        --bar-offset: 20px;
+        /* Abstand der Buttonleiste zum unteren Rand */
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding:
+          calc(8px + env(safe-area-inset-top, 0px))
+          calc(10px + env(safe-area-inset-right, 0px))
+          calc(8px + env(safe-area-inset-bottom, 0px))
+          calc(10px + env(safe-area-inset-left, 0px));
+        background:
+          radial-gradient(1200px 800px at 10% -10%, #1f2937, #0b1020), var(--bg);
+        color: var(--text);
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Ubuntu,
+          Cantarell,
+          "Noto Sans",
+          "Helvetica Neue",
+          Arial;
+      }
+
+      .app {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .card {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.03),
+          rgba(255, 255, 255, 0.01)
+        );
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow: var(--shadow);
+        padding: 10px;
+      }
+
+      .card.compact {
+        padding: 6px 8px;
+      }
+
+      label {
+        font-size: 14px;
+        color: var(--muted);
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      textarea,
+      input[type="text"],
+      input[type="number"],
+      input[type="range"],
+      select {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: #0b1220;
+        color: #e5e7eb;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 16px;
+        outline: none;
+      }
+
+      textarea {
+        min-height: 150px;
+        resize: vertical;
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .row.center {
+        justify-content: center;
+      }
+
+      .spread {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-top: 8px;
+      }
+
+      .hint {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .count {
+        color: #60a5fa;
+        font-weight: 600;
+      }
+
+      .btn {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: #101828;
+        color: #e2e8f0;
+        padding: 8px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 700;
+        box-shadow: var(--shadow);
+        transition:
+          transform 0.05s ease,
+          background 0.2s ease,
+          border-color 0.2s;
+      }
+
+      .btn:hover {
+        background: #111b2b;
+      }
+
+      .btn:active {
+        transform: translateY(1px);
+      }
+
+      .btn[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .story-select {
+        min-width: 220px;
+        max-width: 320px;
+        flex: 1 1 220px;
+      }
+
+      #installHintCard .install-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      #installBtn {
+        display: none;
+        padding: 12px 18px;
+        font-size: 16px;
+        border-radius: 10px;
+        cursor: pointer;
+        min-width: 180px;
+      }
+
+      #installHint {
+        display: none;
+        font-size: 15px;
+        color: #cbd5e1;
+        margin-top: 12px;
+        line-height: 1.45;
+      }
+
+      .btn.primary {
+        background: linear-gradient(90deg, #16a34a, #22c55e);
+        border-color: rgba(34, 197, 94, 0.7);
+        color: #04130a;
+      }
+
+      .btn.destructive {
+        background: linear-gradient(90deg, #ef4444, #f97316);
+        color: #2b0a05;
+        border-color: rgba(239, 68, 68, 0.7);
+      }
+
+      /* Ausgabefeld */
+      .bigout {
+        height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        border: 1px solid var(--accent-soft);
+        border-radius: 10px;
+        width: 100%;
+        background: radial-gradient(
+          600px 200px at 50% 10%,
+          var(--accent-bg),
+          transparent
+        );
+        user-select: none;
+        font-size: 60px;
+        line-height: 1.15;
+        font-weight: 300;
+        box-shadow:
+          var(--shadow),
+          0 0 0 1px rgba(245, 158, 11, 0.15) inset,
+          0 8px 24px var(--accent-glow);
+        padding: 8px 12px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .bigout span {
+        display: inline-block;
+        transform: translateZ(0);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .len-counter {
+        position: absolute;
+        right: 8px;
+        bottom: 6px;
+        font-size: 12px;
+        color: var(--muted);
+        opacity: 0.9;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .footer-note {
+        margin: 10px 0 0;
+        padding-top: 10px;
+        border-top: 1px solid var(--border);
+        color: var(--text);
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+        text-align: center;
+        opacity: 0.98;
+        text-shadow:
+          0 1px 0 rgba(0, 0, 0, 0.35),
+          0 0 12px var(--accent-glow);
+      }
+
+      .footer-note .footer-name {
+        display: block;
+        margin-top: 0;
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      .footer-note::after {
+        content: "Version " attr(data-app-version);
+        display: block;
+        margin-top: 6px;
+        font-size: 15px;
+        font-weight: 900;
+        letter-spacing: 0.3px;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .settings-inline-actions {
+        justify-content: center;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .settings-inline-actions .btn {
+        width: 100%;
+      }
+
+      .settings-inline-note {
+        text-align: center;
+      }
+
+      .settings-toggle-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.04),
+          rgba(255, 255, 255, 0.02)
+        );
+        color: var(--text);
+        cursor: pointer;
+        box-shadow: var(--shadow);
+        text-align: left;
+        transition:
+          transform 0.05s ease,
+          border-color 0.18s ease,
+          background 0.18s ease;
+      }
+
+      .settings-toggle-btn:hover {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.06),
+          rgba(255, 255, 255, 0.03)
+        );
+        border-color: rgba(245, 158, 11, 0.28);
+      }
+
+      .settings-toggle-btn:active {
+        transform: translateY(1px);
+      }
+
+      .settings-toggle-btn:focus-visible {
+        outline: 2px solid rgba(245, 158, 11, 0.55);
+        outline-offset: 2px;
+      }
+
+      .settings-toggle-icon {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: rgba(59, 130, 246, 0.22);
+        color: #93c5fd;
+        font-size: 24px;
+        flex: 0 0 auto;
+      }
+
+      .settings-toggle-copy {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .settings-toggle-title {
+        font-size: 15px;
+        font-weight: 800;
+        color: #e5e7eb;
+      }
+
+      .settings-toggle-hint {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      /* Vollbild-Overlay */
+      .overlay {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        min-height: 100vh;
+        min-height: 100dvh;
+        background: #000;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 16px;
+        padding:
+          env(safe-area-inset-top, 0px)
+          env(safe-area-inset-right, 0px)
+          env(safe-area-inset-bottom, 0px)
+          env(safe-area-inset-left, 0px);
+      }
+
+      .overlay .overlay-out {
+        width: min(1400px, 96vw);
+        margin-top: var(--ov-top-gap);
+        height: calc(
+          100vh - var(--ov-top-gap) -
+            (
+              var(--bar-height, 64px) + var(--bar-offset, 20px) +
+                env(safe-area-inset-bottom, 0px) + 10px
+            )
+        );
+        height: calc(
+          100dvh - var(--ov-top-gap) -
+            (
+              var(--bar-height, 64px) + var(--bar-offset, 20px) +
+                env(safe-area-inset-bottom, 0px) + 10px
+            )
+        );
+        min-height: 240px;
+        border-radius: 12px;
+        border: 1px solid var(--accent-soft);
+        box-shadow:
+          0 0 0 1px rgba(245, 158, 11, 0.15) inset,
+          0 20px 60px rgba(0, 0, 0, 0.6),
+          0 12px 36px var(--accent-glow);
+        background: radial-gradient(
+          800px 300px at 50% 8%,
+          var(--accent-bg),
+          transparent
+        );
+        padding: 12px 16px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .overlay-bar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: calc(
+          env(safe-area-inset-bottom, 0px) + var(--bar-offset, 20px)
+        );
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      /* Handbuch-Overlay */
+      .manual {
+        position: fixed;
+        inset: 0;
+        background: #000;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .manual-card {
+        width: min(1100px, 95vw);
+        max-height: min(88vh, 1200px);
+        max-height: min(88dvh, 1200px);
+        overflow: auto;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.06),
+          rgba(255, 255, 255, 0.03)
+        );
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        padding: 18px 20px;
+      }
+
+      .manual h1 {
+        margin: 0.2em 0 0.4em;
+        font-size: 28px;
+      }
+
+      .manual h2 {
+        margin: 1em 0 0.3em;
+        font-size: 20px;
+      }
+
+      .manual h3 {
+        margin: 0.8em 0 0.2em;
+        font-size: 16px;
+        color: #cbd5e1;
+      }
+
+      .manual p {
+        margin: 0.35em 0 0.35em;
+        line-height: 1.5;
+      }
+
+      .manual ul {
+        margin: 0.4em 0 0.6em;
+        padding-left: 1.2em;
+      }
+
+      .manual li {
+        margin: 0.2em 0;
+      }
+
+      .toc a {
+        color: #93c5fd;
+        text-decoration: none;
+      }
+
+      .toc a:hover {
+        text-decoration: underline;
+      }
+
+      .close-x {
+        position: sticky;
+        top: 0;
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .close-x button {
+        background: #0b1220;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #e2e8f0;
+        border-radius: 8px;
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="app">
+      <section class="card compact">
+        <div id="output" class="bigout">
+          <span id="outputText">…</span
+          ><span class="len-counter" id="lenOut">0</span>
+        </div>
+        <div class="row center" style="margin-top: 16px">
+          <button class="btn primary" id="start">Start</button>
+          <button class="btn" id="prevBtn" disabled>⏮</button>
+          <button class="btn" id="pauseBtn" disabled>⏸</button>
+          <button class="btn" id="nextBtn" disabled>⏭</button>
+          <button class="btn destructive" id="stop" disabled>⏹</button>
+        </div>
+
+        <div id="typeBlock">
+          <div id="sizeRow" class="row center" style="margin-top: 4px">
+            <label for="size" class="hint">Anzeigegröße</label>
+            <input
+              id="size"
+              type="range"
+              min="24"
+              max="160"
+              step="2"
+              value="28"
+              style="max-width: 360px; width: 100%"
+            />
+            <div class="hint">
+              (<span id="sizeVal" class="count">60px</span>)
+            </div>
+          </div>
+          <div id="weightRow" class="row center" style="margin-top: 4px">
+            <label for="weight" class="hint">Schriftstärke</label>
+            <input
+              id="weight"
+              type="range"
+              min="100"
+              max="900"
+              step="100"
+              value="200"
+              style="max-width: 360px; width: 100%"
+            />
+            <div class="hint">
+              (<span id="weightVal" class="count">300</span>)
+            </div>
+          </div>
+          <div id="autoRow" class="row center" style="margin-top: 4px">
+            <label class="row" style="gap: 8px; align-items: center">
+              <input id="autoWeight" type="checkbox" />
+              <span class="hint">Gewicht automatisch an Größe koppeln</span>
+            </label>
+          </div>
+          <div id="familyRow" class="row center" style="margin-top: 4px">
+            <label for="family" class="hint">Schriftart</label>
+            <select id="family" style="max-width: 200px">
+              <option value="system">System</option>
+              <option value="serif">Serif</option>
+              <option value="mono">Monospace</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="hint" id="status" style="margin-top: 4px">Bereit.</div>
+      </section>
+
+      <section class="card">
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+          "
+        >
+          <label for="input" id="inputLabel"
+            >Eingabe (Wortliste oder Geschichte)</label
+          >
+
+          <!-- Trennzeichen-Dropdown direkt nach dem Label -->
+          <div
+            id="separatorConfig"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 14px;
+            "
+          >
+            <span>Trennzeichen:</span>
+            <select
+              id="separator"
+              style="padding: 4px; font-size: 14px; max-width: 200px"
+            >
+              <option value="space">Leerzeichen</option>
+              <option value="newline">Zeilenumbruch</option>
+              <option value="comma">Komma (,)</option>
+              <option value="period">Punkt (.)</option>
+              <option value="comma_period">Komma oder Punkt (, .)</option>
+              <option value="semicolon">Semikolon (;)</option>
+              <option value="colon">Doppelpunkt (:)</option>
+              <option value="question">Fragezeichen (?)</option>
+              <option value="exclamation">Ausrufezeichen (!)</option>
+              <option value="whitespace_comma_semicolon">
+                Leerz. + Komma + Semikolon
+              </option>
+              <option value="punctuation">Satzzeichen (. ! ?)</option>
+            </select>
+          </div>
+        </div>
+
+        <textarea
+          id="input"
+          placeholder="Wörter oder eine kurze Geschichte einfügen…"
+        ></textarea>
+
+        <div class="spread">
+          <div class="row">
+            <button class="btn" id="textReset">Text‑Reset (Standard)</button>
+            <button class="btn" id="clear">Text leeren</button>
+            <select
+              id="storySelect"
+              class="story-select"
+              aria-label="Gespeicherte Geschichte auswaehlen"
+            >
+              <option value="">Geschichte auswaehlen...</option>
+            </select>
+            <button class="btn" id="uploadStoryBtn" type="button">
+              Geschichte hochladen
+            </button>
+            <button class="btn" id="saveStoryBtn" type="button">
+              Text speichern
+            </button>
+            <button class="btn" id="shareStoryBtn" type="button" disabled>
+              Geschichte exportieren
+            </button>
+            <button class="btn" id="deleteStoryBtn" type="button" disabled>
+              Geschichte loeschen
+            </button>
+            <button class="btn" id="reset">Einstellungen zuruecksetzen</button>
+            <input id="storyFileInput" type="file" accept=".txt,text/plain" hidden />
+          </div>
+          <div class="hint">
+            <span class="count" id="count">0</span> Einträge erkannt
+          </div>
+        </div>
+        <div class="hint" id="storyLibraryHint" style="margin-top: 6px">
+          Keine gespeicherten Geschichten vorhanden.
+        </div>
+
+        <div class="row" style="margin-top: 8px">
+          <label class="row" style="margin-right: 14px"
+            ><input type="radio" name="mode" value="sequential" checked /> der
+            Reihe nach</label
+          >
+          <label class="row" style="margin-right: 14px"
+            ><input type="radio" name="mode" value="random" /> gemischt</label
+          >
+          <label class="row"
+            ><input type="checkbox" id="sentenceMode" />
+            <span id="sentenceModeLabel">ganze Sätze</span></label
+          >
+        </div>
+
+        <div class="row" style="margin-top: 8px">
+          <label for="interval" style="min-width: 140px"
+            >Lesezeit pro Zeichen (Sek.)</label
+          >
+          <input
+            id="interval"
+            type="number"
+            min="0.1"
+            step="0.1"
+            value="0.5"
+            style="max-width: 120px"
+          />
+          <input
+            id="intervalRange"
+            type="range"
+            min="0.1"
+            max="5"
+            step="0.1"
+            value="0.5"
+            style="flex: 1; min-width: 180px"
+          />
+          <div class="hint">
+            Pro Zeichen: <span id="intervalVal" class="count">0.5s</span>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top: 8px">
+          <label class="row"
+            ><input type="checkbox" id="loop" checked /> Nach letztem Eintrag
+            neu beginnen</label
+          >
+          <label class="row" style="margin-left: 12px"
+            ><input type="checkbox" id="trim" /> Leere Einträge entfernen</label
+          >
+          <div
+            class="row"
+            style="margin-left: 12px; flex: 1; min-width: 260px"
+            id="lockRow"
+          >
+            <button
+              id="settingsToggleBtn"
+              class="settings-toggle-btn"
+              type="button"
+              aria-expanded="false"
+              aria-controls="typeBlock"
+            >
+              <span class="settings-toggle-icon" aria-hidden="true"
+                >&#9881;</span
+              >
+              <span class="settings-toggle-copy">
+                <span class="settings-toggle-title"
+                  >Programm-Einstellungen</span
+                >
+                <span class="settings-toggle-hint" id="settingsToggleHint"
+                  >eingeklappt</span
+                >
+              </span>
+            </button>
+          </div>
+          <div
+            id="settingsActions"
+            class="row settings-inline-actions"
+            hidden
+          >
+            <button class="btn" id="exportHtmlButton" type="button" hidden>
+              Index HTML exportieren
+            </button>
+            <div class="hint settings-inline-note" id="exportHtmlNote">
+              Speichert die originale HTML-Datei mit deinen aktuellen lokalen
+              Einstellungen.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card compact" id="installHintCard" hidden>
+        <div class="install-actions">
+          <button id="installBtn" class="btn primary" type="button">
+            App installieren
+          </button>
+          <div class="hint" id="installHint"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Vollbild Overlay -->
+    <div id="overlay" class="overlay hidden" aria-hidden="true">
+      <div id="overlayOutput" class="bigout overlay-out">
+        <span id="overlayText">…</span
+        ><span class="len-counter" id="lenOv">0</span>
+      </div>
+      <div class="overlay-bar">
+        <button class="btn primary" id="ovStart">Start</button>
+        <button class="btn" id="ovPrevBtn" disabled>⏮</button>
+        <button class="btn" id="ovPauseBtn" disabled>⏸</button>
+        <button class="btn" id="ovNextBtn" disabled>⏭</button>
+        <button class="btn destructive" id="ovStop" disabled>⏹</button>
+      </div>
+    </div>
+
+    <!-- Handbuch Overlay -->
+    <div id="manual" class="manual hidden" aria-hidden="true">
+      <div
+        class="manual-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="manualTitle"
+      >
+        <div class="close-x">
+          <button id="manualClose" aria-label="Schließen">Schließen ✕</button>
+        </div>
+        <h1 id="manualTitle">Handbuch – Wort‑ & Satz‑Abspieler</h1>
+        <p class="hint" style="margin-top: -6px">
+          Kurzanleitung & Referenz. Dieses Handbuch öffnet sich, wenn du unten
+          auf <strong>„❤️ Isabella Bachner ❤️“</strong> klickst.
+        </p>
+
+        <h2>Inhalt</h2>
+        <ul class="toc">
+          <li><a href="#m-einfuehrung">1. Einführung & Ziel</a></li>
+          <li><a href="#m-schnellstart">2. Schnellstart</a></li>
+          <li><a href="#m-modi">3. Modi: Wörter vs. ganze Sätze</a></li>
+          <li><a href="#m-zeit">4. Zeitsteuerung, Lesezeit & Timer</a></li>
+          <li><a href="#m-anzeige">5. Anzeige & Typografie</a></li>
+          <li><a href="#m-eingabe">6. Eingabe, Trennzeichen & Geschichten</a></li>
+          <li><a href="#m-steuerung">7. Abspiel‑Steuerung, Pause & Vollbild</a></li>
+          <li>
+            <a href="#m-speicher">8. Speichern, Export, Installation & Standards</a>
+          </li>
+          <li><a href="#m-shortcuts">9. Tastenkürzel</a></li>
+          <li><a href="#m-tipps">10. Trainings‑Tipps</a></li>
+          <li><a href="#m-faq">11. FAQ</a></li>
+          <li><a href="#m-datenschutz">12. Datenschutz</a></li>
+        </ul>
+
+        <h2 id="m-einfuehrung">1. Einführung & Ziel</h2>
+        <p>
+          Der Wort‑ & Satz‑Abspieler unterstützt dich beim
+          <strong>Blitzlesen</strong>. Er zeigt Wörter, Satzteile oder ganze
+          Geschichten groß und zentriert an, arbeitet im Vollbild und merkt
+          sich deine Eingaben, Einstellungen und gespeicherten Geschichten lokal
+          auf deinem Gerät.
+        </p>
+
+        <h2 id="m-schnellstart">2. Schnellstart</h2>
+        <ul>
+          <li>
+            <strong>Text einfügen:</strong> Oben ist die Ausgabebox, unten das
+            Eingabefeld. Füge Wörter, Satzmaterial oder eine ganze Geschichte
+            ein.
+          </li>
+          <li>
+            <strong>Modus wählen:</strong> „der Reihe nach“ oder „gemischt“.
+            Für Geschichten <em>Satzmodus</em> aktivieren, für Wortlisten im
+            Wortmodus bleiben.
+          </li>
+          <li>
+            <strong>Trennart festlegen:</strong> Im Wortmodus bestimmst du über
+            <em>Trennzeichen</em>, wie der Text zerlegt wird. Im Satzmodus wird
+            an Satzzeichen und Zeilenumbrüchen getrennt.
+          </li>
+          <li>
+            <strong>Geschichte sichern:</strong> Mit
+            <em>Text speichern</em> legst du den aktuellen Eingabetext als
+            Geschichte ab. Mit <em>Geschichte hochladen</em> importierst du
+            eine <code>.txt</code>-Datei.
+          </li>
+          <li>
+            <strong>Geschichte weitergeben:</strong> Mit
+            <em>Geschichte exportieren</em> öffnest du je nach Gerät den
+            Teilen-Dialog oder erhältst eine exportierte <code>.txt</code>-Datei.
+          </li>
+          <li>
+            <strong>Start:</strong> Klick auf <em>Start</em> → echter
+            Vollbildmodus, die Anzeige läuft automatisch.
+          </li>
+          <li>
+            <strong>Während des Lesens:</strong> Mit <em>Zurück</em>,
+            <em>Pause</em> und <em>Nächstes</em> steuerst du gezielt einzelne
+            Schritte.
+          </li>
+        </ul>
+
+        <h2 id="m-modi">3. Modi: Wörter vs. ganze Sätze</h2>
+        <ul>
+          <li>
+            <strong>Wortmodus:</strong> Einträge werden nach dem aktuell
+            gewählten Trennzeichen zerlegt. Bei „Leerzeichen“ werden
+            abschließende Satzzeichen am Wortende entfernt. Die Standardliste
+            der häufigsten Wörter ist vorbefüllt.
+          </li>
+          <li>
+            <strong>Satzmodus:</strong> Trennung erfolgt nach
+            <code>.</code>, <code>?</code>, <code>!</code>, <code>…</code>
+            sowie Zeilenumbrüchen. Satzzeichen bleiben sichtbar. Die
+            Standardgeschichte ist vorbefüllt.
+          </li>
+          <li>
+            <strong>Reihenfolge:</strong> „der Reihe nach“ oder „gemischt“
+            (Zufall). Optional kann die Anzeige am Ende automatisch neu
+            beginnen.
+          </li>
+          <li>
+            <strong>Moduswechsel:</strong> Die App merkt sich getrennt die
+            letzte Wortliste und die letzte Geschichte. Beim Wechsel wird der
+            passende Inhalt automatisch wiederhergestellt.
+          </li>
+        </ul>
+
+        <h2 id="m-zeit">4. Zeitsteuerung, Lesezeit & Timer</h2>
+        <ul>
+          <li>
+            <strong>Lesezeit pro Zeichen:</strong> Die Einstellung
+            <em>Lesezeit pro Zeichen (Sek.)</em> gilt für alle Einträge in
+            beiden Modi.
+          </li>
+          <li>
+            <strong>Dynamische Dauer:</strong> Die tatsächliche Anzeigedauer
+            berechnet sich aus <em>Zeichen ohne Leerzeichen × eingestellte
+            Zeit</em>. Längere Wörter oder Sätze bleiben dadurch automatisch
+            länger sichtbar.
+          </li>
+          <li>
+            <strong>Zahlfeld & Regler:</strong> Beide Eingaben sind gekoppelt.
+            Änderst du die Zeit während des Lesens, startet die aktuelle
+            Taktung mit den neuen Werten neu.
+          </li>
+          <li>
+            <strong>Countdown‑Anzeige:</strong> Unten rechts erscheint
+            <em>„Lesezeit: gesamt / rest“</em>. Während des Abspielens zählt der
+            rechte Wert herunter.
+          </li>
+          <li>
+            <strong>Zeichenzähler:</strong> Wenn gerade nicht abgespielt wird,
+            zeigt derselbe Bereich die Zeichenanzahl des aktuellen Eintrags
+            ohne Leerzeichen.
+          </li>
+        </ul>
+
+        <h2 id="m-anzeige">5. Anzeige & Typografie</h2>
+        <ul>
+          <li>
+            <strong>Größe:</strong> Schieberegler von 24 bis 160 Pixel. Die
+            Anzeige passt sich zusätzlich automatisch an das Feld an, damit
+            nichts überläuft.
+          </li>
+          <li>
+            <strong>Gewicht:</strong> 100–900 oder
+            <em>automatisch an Größe koppeln</em>. Bei aktiver Kopplung bleibt
+            die Schriftstärke passend zur Größe erhalten.
+          </li>
+          <li><strong>Schriftart:</strong> System, Serif oder Monospace.</li>
+          <li>
+            <strong>Programm‑Einstellungen:</strong> Der Zahnrad‑Schalter klappt
+            Typografie‑Regler und Zusatzaktionen ein oder aus. Das schützt vor
+            versehentlichem Verstellen.
+          </li>
+        </ul>
+
+        <h2 id="m-eingabe">6. Eingabe, Trennzeichen & Geschichten</h2>
+        <ul>
+          <li>
+            <strong>Zähler:</strong> Der Hinweis rechts zeigt die aktuell
+            erkannten Einträge.
+          </li>
+          <li>
+            <strong>Trennzeichen:</strong> Im Wortmodus kannst du gezielt nach
+            Leerzeichen, Zeilenumbrüchen, Kommas, Punkten, Doppelpunkten,
+            Satzzeichen und weiteren Varianten trennen.
+          </li>
+          <li><strong>Trim:</strong> Leere Einträge optional entfernen.</li>
+          <li>
+            <strong>Text‑Reset:</strong> Lädt Standardwörter bzw. die
+            Standardgeschichte passend zum aktuellen Modus.
+          </li>
+          <li>
+            <strong>Text speichern:</strong> Speichert den aktuellen
+            Eingabetext als neue Geschichte. Als Vorschlag dient der bisherige
+            Geschichtenname oder die erste sinnvolle Zeile des Textes.
+          </li>
+          <li>
+            <strong>Eindeutige Namen:</strong> Gibt es einen Namen schon, legt
+            die App automatisch Varianten wie <code>(2)</code>,
+            <code>(3)</code> usw. an, statt etwas zu überschreiben.
+          </li>
+          <li>
+            <strong>Geschichte hochladen:</strong> Importiert eine normale
+            Textdatei (<code>.txt</code>) in die lokale Geschichtenliste. Vor
+            dem Speichern kannst du den vorgeschlagenen Namen noch anpassen.
+          </li>
+          <li>
+            <strong>Geschichte auswählen:</strong> Lädt den gespeicherten Text
+            direkt ins Eingabefeld, aktiviert den Satzmodus und startet die
+            Anzeige bei laufender Wiedergabe mit dem geladenen Inhalt neu.
+          </li>
+          <li>
+            <strong>Geschichte exportieren:</strong> Gibt die aktuelle
+            Geschichte oder den aktuellen Eingabetext als <code>.txt</code>
+            weiter. In der Android-App öffnet sich der System-Teilen-Dialog,
+            in unterstützten Browsern die Web-Share-Freigabe, sonst ein
+            normaler Datei-Download.
+          </li>
+          <li>
+            <strong>Geschichte löschen:</strong> Entfernt nur die aktuell
+            ausgewählte Geschichte nach einer Sicherheitsabfrage.
+          </li>
+          <li>
+            <strong>Bibliotheks‑Hinweis:</strong> Unter den Buttons siehst du,
+            ob keine Geschichte vorhanden ist, wie viele Geschichten gespeichert
+            sind oder welche Geschichte gerade ausgewählt ist. Bei Importen wird
+            zusätzlich der ursprüngliche Dateiname angezeigt.
+          </li>
+          <li>
+            <strong>Bewusste Entkopplung:</strong> Änderst du den geladenen Text
+            oder wechselst in den Wortmodus, wird die aktuelle Auswahl gelöst.
+            So vermeidest du versehentliches Löschen oder falsche Zuordnung.
+          </li>
+          <li>
+            <strong>Text leeren:</strong> Entfernt nur den aktuellen
+            Eingabetext.
+          </li>
+        </ul>
+
+        <h2 id="m-steuerung">7. Abspiel‑Steuerung, Pause & Vollbild</h2>
+        <ul>
+          <li>
+            <strong>Start:</strong> Öffnet sofort den
+            <em>echten Vollbildmodus</em> (Adressleiste/untere Leiste werden
+            nach Möglichkeit vom Browser verdeckt).
+          </li>
+          <li>
+            <strong>Zurück / Nächstes:</strong> Beide Sprungtasten funktionieren
+            während der laufenden Wiedergabe und setzen die Anzeige danach
+            bewusst auf <em>Pause</em>, damit du kontrolliert weiterlesen
+            kannst.
+          </li>
+          <li>
+            <strong>Pause / Weiter:</strong> Die Pause‑Taste wechselt zwischen
+            Pause‑ und Play‑Symbol und setzt an derselben Position fort.
+          </li>
+          <li>
+            <strong>Buttons im Vollbild:</strong> Unten mittig, mit dynamischem
+            Abstand zum Rand. Im Querformat sitzen sie etwas näher am Rand als
+            im Hochformat.
+          </li>
+          <li>
+            <strong>Handbuch öffnen:</strong> Klick unten auf
+            <strong>„❤️ Isabella Bachner ❤️“</strong>. Schließen geht über den
+            Button, per Klick auf den dunklen Hintergrund oder mit
+            <kbd>Esc</kbd>.
+          </li>
+          <li>
+            <strong>Tastatur:</strong> Leertaste = Start/Stopp, Pfeil links =
+            zurück, Pfeil rechts = nächstes, Escape = Vollbild oder Handbuch
+            schließen.
+          </li>
+        </ul>
+
+        <h2 id="m-speicher">8. Speichern, Export, Installation & Standards</h2>
+        <ul>
+          <li>
+            <strong>Automatisches Speichern:</strong> Einstellungen (Größe,
+            Gewicht, Kopplung, Schriftart, Lesezeit, Modus, Loop, Trim,
+            Trennzeichen, Satz/Wortmodus), die letzte Wortliste, die letzte
+            Geschichte, die komplette Geschichten‑Bibliothek und die aktuelle
+            Auswahl werden lokal gespeichert.
+          </li>
+          <li>
+            <strong>Einstellungen zurücksetzen:</strong> Setzt nur
+            Geschwindigkeit, Anzeige und Bedienoptionen auf Standardwerte
+            zurück. Texte und gespeicherte Geschichten bleiben erhalten.
+          </li>
+          <li>
+            <strong>Modusbewusster Text:</strong> Im Satzmodus wird die letzte
+            Geschichte gespeichert, im Wortmodus die letzte Wortliste. Beim
+            Wechsel wird der passende Inhalt automatisch geladen.
+          </li>
+          <li>
+            <strong>Index HTML exportieren:</strong> Innerhalb der
+            <em>Programm‑Einstellungen</em> kannst du die originale HTML-Datei
+            exportieren. Dabei werden deine aktuellen lokalen Einstellungen und
+            gespeicherten Geschichten in die Exportdatei eingebettet.
+          </li>
+          <li>
+            <strong>Geschichten-Export:</strong> Der Button
+            <em>Geschichte exportieren</em> nutzt bevorzugt den
+            Standard-Teilen-Dialog, damit du Inhalte direkt an WhatsApp,
+            Telegram oder andere Apps weitergeben kannst.
+          </li>
+          <li>
+            <strong>App installieren / aktualisieren:</strong> In der
+            Browser-/PWA-Version blendet die App je nach Gerät einen
+            Installations- oder Aktualisierungshinweis ein. Bereits bekannte
+            installierte Versionen werden lokal gemerkt.
+          </li>
+          <li>
+            <strong>Nur lokal:</strong> Geschichten und Einstellungen bleiben
+            im lokalen Speicher des Browsers bzw. der App. Ohne Export oder
+            manuelles Teilen werden sie nicht automatisch auf andere Geräte
+            übertragen.
+          </li>
+        </ul>
+
+        <h2 id="m-shortcuts">9. Tastenkürzel</h2>
+        <ul>
+          <li><kbd>Leertaste</kbd> – Start/Stopp</li>
+          <li><kbd>Pfeil links</kbd> – Zurück und pausieren</li>
+          <li><kbd>Pfeil rechts</kbd> – Nächstes und pausieren</li>
+          <li><kbd>Esc</kbd> – Vollbild oder Handbuch schließen</li>
+        </ul>
+
+        <h2 id="m-tipps">10. Trainings‑Tipps</h2>
+        <ul>
+          <li>
+            Starte mit kurzen Wörtern oder kurzen Sätzen und steigere langsam
+            die <em>Lesezeit pro Zeichen</em> oder die Textlänge.
+          </li>
+          <li>
+            Speichere unterschiedliche Geschichten mit klaren Namen, wenn du
+            mehrere Trainingsstände oder Themen getrennt üben möchtest.
+          </li>
+          <li>
+            Im Querformat wird der verfügbare Platz maximiert – ideal fürs Lesen
+            längerer Sätze.
+          </li>
+          <li>
+            Nimm gemütliche Schriftgewichte (300–400) für lange Sessions;
+            verwende Monospace zum Zählen und für ein klares Timing‑Gefühl.
+          </li>
+        </ul>
+
+        <h2 id="m-faq">11. FAQ</h2>
+        <ul>
+          <li>
+            <strong>Warum ist plötzlich keine Geschichte mehr ausgewählt?</strong>
+            Die Auswahl wird bewusst gelöst, wenn der Text nicht mehr exakt zur
+            gespeicherten Geschichte passt oder wenn du in den Wortmodus
+            wechselst.
+          </li>
+          <li>
+            <strong>Wird beim Speichern eine Geschichte überschrieben?</strong>
+            Nein. Gleiche Namen werden automatisch als neue Variante mit
+            Nummerierung gespeichert.
+          </li>
+          <li>
+            <strong>Der Countdown passt nicht?</strong> Die Zeit berechnet sich
+            aus der Anzahl der Zeichen ohne Leerzeichen multipliziert mit der
+            eingestellten <em>Lesezeit pro Zeichen</em>.
+          </li>
+          <li>
+            <strong>Warum sehe ich Export oder Installationshinweise nicht immer?</strong>
+            Diese Bereiche erscheinen nur in passenden Umgebungen. Der
+            HTML-Export steckt zusätzlich in den eingeklappten
+            <em>Programm‑Einstellungen</em>.
+          </li>
+          <li>
+            <strong>Wie gebe ich eine Geschichte an WhatsApp oder Telegram weiter?</strong>
+            Über <em>Geschichte exportieren</em>. In der Android-App wird der
+            System-Teilen-Dialog geöffnet. In Browsern klappt es über die
+            Web-Share-Funktion oder notfalls über eine exportierte Datei.
+          </li>
+          <li>
+            <strong>Wird etwas online gespeichert?</strong> Nein, ausschließlich
+            lokal im Browser oder in der App.
+          </li>
+        </ul>
+
+        <h2 id="m-datenschutz">12. Datenschutz</h2>
+        <p>
+          Alle Daten (Texte, Geschichten, Einstellungen und Installationsmerker)
+          bleiben lokal auf deinem Gerät. Es findet keine Übertragung an Server
+          statt. Wenn du eine exportierte HTML-Datei weitergibst, enthält diese
+          bewusst deine eingebetteten lokalen Daten.
+        </p>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const onReady = () => {
+          // ---------- Helper
+          const $ = (sel) => document.querySelector(sel);
+          const need = (sel, name) => {
+            const el = $(sel);
+            if (!el) {
+              console.warn(`Element fehlt: ${name} (${sel})`);
+            }
+            return el;
+          };
+          const round100 = (n) => Math.round(Number(n) / 100) * 100;
+          const clampWeight = (w) => Math.max(100, Math.min(900, round100(w)));
+
+          // ---------- Elemente
+          const inputEl = need("#input", "input");
+          const outputBox = need("#output", "output");
+          const outputText = need("#outputText", "outputText") || outputBox;
+          const overlayEl = need("#overlay", "overlay");
+          const overlayText = need("#overlayText", "overlayText");
+          const countEl = need("#count", "count");
+          const intervalEl = need("#interval", "interval");
+          const intervalRangeEl = need("#intervalRange", "intervalRange");
+          const separatorEl = $("#separator"); // Optional - might not exist in old versions
+          const separatorConfigEl = $("#separatorConfig"); // Container for visibility control
+          const loopEl = need("#loop", "loop");
+          const startBtn = need("#start", "start");
+          const stopBtn = need("#stop", "stop");
+          const prevBtn = need("#prevBtn", "prevBtn");
+          const pauseBtn = need("#pauseBtn", "pauseBtn");
+          const nextBtn = need("#nextBtn", "nextBtn");
+          const ovStart = need("#ovStart", "ovStart");
+          const ovStop = need("#ovStop", "ovStop");
+          const ovPrevBtn = need("#ovPrevBtn", "ovPrevBtn");
+          const ovPauseBtn = need("#ovPauseBtn", "ovPauseBtn");
+          const ovNextBtn = need("#ovNextBtn", "ovNextBtn");
+          const clearBtn = need("#clear", "clear");
+          const resetBtn = need("#reset", "reset");
+          const textResetBtn = need("#textReset", "textReset");
+          const statusEl = need("#status", "status");
+          const typeBlock = need("#typeBlock", "typeBlock");
+          const settingsActions = need("#settingsActions", "settingsActions");
+          const sizeRow = need("#sizeRow", "sizeRow");
+          const sizeEl = need("#size", "size");
+          const sizeValEl = need("#sizeVal", "sizeVal");
+          const weightRow = need("#weightRow", "weightRow");
+          const weightEl = need("#weight", "weight");
+          const weightValEl = need("#weightVal", "weightVal");
+          const autoWeightEl = need("#autoWeight", "autoWeight");
+          const autoRow = need("#autoRow", "autoRow");
+          const lockRow = need("#lockRow", "lockRow");
+          const settingsToggleBtn = need(
+            "#settingsToggleBtn",
+            "settingsToggleBtn",
+          );
+          const settingsToggleHint = need(
+            "#settingsToggleHint",
+            "settingsToggleHint",
+          );
+          const familyRow = need("#familyRow", "familyRow");
+          const familyEl = need("#family", "family");
+          const sentenceModeEl = need("#sentenceMode", "sentenceMode");
+          const sentenceModeLabel = need(
+            "#sentenceModeLabel",
+            "sentenceModeLabel",
+          );
+          const helpOpen = need(".footer-name", "helpOpen");
+          const manualEl = need("#manual", "manual");
+          const manualClose = need("#manualClose", "manualClose");
+          const exportHtmlBtn = need("#exportHtmlButton", "exportHtmlButton");
+          const exportHtmlNote = $("#exportHtmlNote");
+          const installHintCard = $("#installHintCard");
+          const installBtn = $("#installBtn");
+          const installHint = $("#installHint");
+          const storySelectEl = need("#storySelect", "storySelect");
+          const uploadStoryBtn = need("#uploadStoryBtn", "uploadStoryBtn");
+          const saveStoryBtn = need("#saveStoryBtn", "saveStoryBtn");
+          const shareStoryBtn = need("#shareStoryBtn", "shareStoryBtn");
+          const deleteStoryBtn = need("#deleteStoryBtn", "deleteStoryBtn");
+          const storyFileInputEl = need("#storyFileInput", "storyFileInput");
+          const storyLibraryHintEl = $("#storyLibraryHint");
+
+          if (!inputEl || !outputBox || !countEl) {
+            console.error(
+              "❌ Kritische Elemente fehlen – Initialisierung abgebrochen.",
+            );
+            return;
+          }
+
+          const APP_NAME_FALLBACK = "Blitz lesen";
+          const APP_VERSION_FALLBACK = "1";
+          const STORAGE_KEY = "wortabspieler.settings.v14";
+          const LEGACY_STORAGE_KEYS = [
+            "wortabspieler.settings.v13",
+            "wortabspieler.settings.v12",
+          ];
+          const INSTALLED_WEB_VERSION_STORAGE_KEY =
+            "wortabspieler.installedWebVersion";
+          const TIMER_LABEL = "Lesezeit";
+          const HTML_EXPORT_STATUS_MS = 3600;
+          const SW_VERSION = "blitzlesen-isabella-v42";
+          const DEFAULT_MODE = "sequential";
+          const DEFAULT_INTERVAL = 0.5;
+          const DEFAULT_SIZE = 28;
+          const DEFAULT_LOOP = true;
+          const DEFAULT_TRIM = false;
+          const DEFAULT_FAMILY = "system";
+          const DEFAULT_SEPARATOR = "space";
+          const footerNote = $(".footer-note");
+          let exportStatusResetTimer = null;
+          let deferredPrompt = null;
+
+          function getAndroidBridge() {
+            if (window.AndroidInterface) return window.AndroidInterface;
+            if (window.AndroidDownload) return window.AndroidDownload;
+            return null;
+          }
+
+          function supportsBundledIndexHtmlExport() {
+            const androidBridge = getAndroidBridge();
+            const hasNativeAndroidExport = Boolean(
+              document.documentElement.getAttribute("data-native-app") ===
+                "android" &&
+              androidBridge &&
+              typeof androidBridge.getBundledIndexHtml === "function" &&
+              typeof androidBridge.saveTextFile === "function",
+            );
+            const hasBrowserFallback = Boolean(
+              typeof window.fetch === "function" &&
+              typeof Blob !== "undefined" &&
+              typeof URL !== "undefined" &&
+              typeof URL.createObjectURL === "function",
+            );
+            return hasNativeAndroidExport || hasBrowserFallback;
+          }
+
+          function supportsTextDownload() {
+            return Boolean(
+              typeof Blob !== "undefined" &&
+                typeof URL !== "undefined" &&
+                typeof URL.createObjectURL === "function",
+            );
+          }
+
+          function supportsStoryExport() {
+            const androidBridge = getAndroidBridge();
+            const hasNativeAndroidShare = Boolean(
+              androidBridge &&
+                typeof androidBridge.shareTextFile === "function",
+            );
+            const hasWebShareApi = Boolean(
+              typeof navigator !== "undefined" &&
+                typeof navigator.share === "function",
+            );
+            return hasNativeAndroidShare || hasWebShareApi || supportsTextDownload();
+          }
+
+          function updateBundledIndexHtmlExportVisibility() {
+            if (!exportHtmlBtn) return;
+            const supported = supportsBundledIndexHtmlExport();
+            if (settingsActions) settingsActions.hidden = false;
+            exportHtmlBtn.hidden = false;
+            exportHtmlBtn.disabled =
+              !supported || exportHtmlBtn.classList.contains("is-busy");
+            exportHtmlBtn.setAttribute("aria-hidden", "false");
+            exportHtmlBtn.setAttribute("aria-disabled", String(!supported));
+            if (exportHtmlNote) {
+              exportHtmlNote.textContent = supported
+                ? "Speichert die originale HTML-Datei mit deinen aktuellen lokalen Einstellungen."
+                : "HTML-Export ist in dieser Umgebung gerade nicht verfuegbar.";
+            }
+          }
+
+          window.__updateHtmlExportButton =
+            updateBundledIndexHtmlExportVisibility;
+
+          function isStandaloneWebApp() {
+            if (typeof window.matchMedia === "function") {
+              const standaloneDisplay =
+                window.matchMedia("(display-mode: standalone)").matches ||
+                window.matchMedia("(display-mode: minimal-ui)").matches ||
+                window.matchMedia("(display-mode: fullscreen)").matches;
+              if (standaloneDisplay) return true;
+            }
+
+            return window.navigator.standalone === true;
+          }
+
+          function isIOSDevice() {
+            const ua = String(window.navigator.userAgent || "");
+            const platform = String(window.navigator.platform || "");
+            const maxTouchPoints = Number(window.navigator.maxTouchPoints || 0);
+            return (
+              /iPad|iPhone|iPod/i.test(ua) ||
+              (platform === "MacIntel" && maxTouchPoints > 1)
+            );
+          }
+
+          function isAndroidDevice() {
+            return /Android/i.test(String(window.navigator.userAgent || ""));
+          }
+
+          function isAndroidAppWebView() {
+            try {
+              if (window.AndroidInterface || window.AndroidDownload) return true;
+            } catch (e) {}
+
+            const currentUrl = String(window.location.href || "");
+            const ua = String(window.navigator.userAgent || "");
+            const hasWebViewUa = /\bwv\b/i.test(ua) || /; wv\)/i.test(ua);
+
+            return (
+              currentUrl.indexOf("file:///android_asset/") === 0 ||
+              (hasWebViewUa && !/^https?:/i.test(currentUrl))
+            );
+          }
+
+          function isInAppBrowser() {
+            const ua = String(window.navigator.userAgent || "");
+            return /FBAN|FBAV|Instagram|Line\/|Snapchat|TikTok|MicroMessenger|Telegram|WhatsApp|Messenger|\bwv\b|; wv\)/i.test(
+              ua,
+            );
+          }
+
+          function normalizeVersionParts(version) {
+            const matches = String(version || "").match(/\d+/g);
+            if (!matches) return [];
+            return matches
+              .map((part) => parseInt(part, 10))
+              .filter((part) => Number.isFinite(part));
+          }
+
+          function compareVersionValues(leftVersion, rightVersion) {
+            const left = normalizeVersionParts(leftVersion);
+            const right = normalizeVersionParts(rightVersion);
+            const maxLength = Math.max(left.length, right.length);
+
+            for (let i = 0; i < maxLength; i += 1) {
+              const leftPart = left[i] ?? 0;
+              const rightPart = right[i] ?? 0;
+              if (leftPart > rightPart) return 1;
+              if (leftPart < rightPart) return -1;
+            }
+
+            const leftText = String(leftVersion || "").trim();
+            const rightText = String(rightVersion || "").trim();
+            if (!left.length && !right.length) {
+              return leftText.localeCompare(rightText, undefined, {
+                numeric: true,
+                sensitivity: "base",
+              });
+            }
+
+            return 0;
+          }
+
+          function getKnownInstalledWebVersion() {
+            try {
+              return String(
+                localStorage.getItem(INSTALLED_WEB_VERSION_STORAGE_KEY) || "",
+              ).trim();
+            } catch (e) {
+              return "";
+            }
+          }
+
+          function rememberKnownInstalledWebVersion(
+            version = getCurrentAppVersion(),
+          ) {
+            const cleanVersion = String(version || "").trim();
+            if (!cleanVersion) return;
+
+            try {
+              if (getKnownInstalledWebVersion() === cleanVersion) return;
+              localStorage.setItem(
+                INSTALLED_WEB_VERSION_STORAGE_KEY,
+                cleanVersion,
+              );
+            } catch (e) {}
+          }
+
+          function getInstallHintContext() {
+            const currentVersion = getCurrentAppVersion();
+            const installedVersion = getKnownInstalledWebVersion();
+            const hasKnownInstalledVersion = Boolean(installedVersion);
+            const installedVersionComparison = hasKnownInstalledVersion
+              ? compareVersionValues(installedVersion, currentVersion)
+              : null;
+            const isStandalone = isStandaloneWebApp();
+            const isIOS = isIOSDevice();
+            const isAndroid = isAndroidDevice();
+            const isApkWebView = isAndroidAppWebView();
+            const inAppBrowser = !isApkWebView && isInAppBrowser();
+
+            return {
+              currentVersion,
+              hasKnownInstalledVersion,
+              installedVersion,
+              installedVersionComparison,
+              isAndroid,
+              isApkWebView,
+              isIOS,
+              isInAppBrowser: inAppBrowser,
+              isInstalledVersionCurrent:
+                hasKnownInstalledVersion && installedVersionComparison >= 0,
+              isInstallUpdateAvailable:
+                hasKnownInstalledVersion && installedVersionComparison < 0,
+              isStandalone,
+            };
+          }
+
+          function syncKnownInstalledWebVersion() {
+            const ctx = getInstallHintContext();
+            if (!ctx.isStandalone) return;
+            rememberKnownInstalledWebVersion(ctx.currentVersion);
+          }
+
+          function getInstallHintMessage(ctx) {
+            if (!ctx) return "";
+
+            if (ctx.isInAppBrowser) {
+              return "Bitte im normalen Browser öffnen";
+            }
+
+            if (ctx.isInstalledVersionCurrent) {
+              if (ctx.isIOS) {
+                return `Version ${ctx.currentVersion} ist bereits aktuell. Wenn die App schon zum Home-Bildschirm hinzugefügt wurde, ist keine Neuinstallation nötig.`;
+              }
+
+              if (ctx.isAndroid) {
+                return `Version ${ctx.currentVersion} ist bereits aktuell. Wenn die App schon installiert ist, einfach öffnen, keine Neuinstallation nötig.`;
+              }
+
+              return "";
+            }
+
+            if (ctx.isIOS) {
+              if (ctx.isInstallUpdateAvailable) {
+                return `Neue Version ${ctx.currentVersion} verfügbar. Safari öffnen → Teilen → Zum Home-Bildschirm`;
+              }
+
+              return "Safari öffnen → Teilen → Zum Home-Bildschirm";
+            }
+
+            if (ctx.isAndroid) {
+              if (ctx.isInstallUpdateAvailable) {
+                return `Neue Version ${ctx.currentVersion} verfügbar. Im Browser-Menü „Zum Startbildschirm“ oder „App installieren“ erneut wählen.`;
+              }
+
+              return "Im Browser-Menü „Zum Startbildschirm“ oder „App installieren“ wählen.";
+            }
+
+            return "";
+          }
+
+          function getInstallButtonLabel(ctx) {
+            if (ctx && ctx.isInstallUpdateAvailable) {
+              return "App aktualisieren";
+            }
+
+            return "App installieren";
+          }
+
+          function getInstallUiState() {
+            const ctx = getInstallHintContext();
+
+            if (ctx.isApkWebView || ctx.isStandalone) {
+              return {
+                showCard: false,
+                showButton: false,
+                buttonLabel: "",
+                hintText: "",
+              };
+            }
+
+            if (ctx.isInAppBrowser) {
+              return {
+                showCard: true,
+                showButton: false,
+                buttonLabel: "",
+                hintText: getInstallHintMessage(ctx),
+              };
+            }
+
+            if (ctx.isInstalledVersionCurrent) {
+              return {
+                showCard: true,
+                showButton: false,
+                buttonLabel: "",
+                hintText: getInstallHintMessage(ctx),
+              };
+            }
+
+            if (ctx.isIOS) {
+              return {
+                showCard: true,
+                showButton: false,
+                buttonLabel: "",
+                hintText: getInstallHintMessage(ctx),
+              };
+            }
+
+            if (deferredPrompt) {
+              return {
+                showCard: true,
+                showButton: true,
+                buttonLabel: getInstallButtonLabel(ctx),
+                hintText: "",
+              };
+            }
+
+            if (ctx.isAndroid) {
+              return {
+                showCard: true,
+                showButton: false,
+                buttonLabel: "",
+                hintText: getInstallHintMessage(ctx),
+              };
+            }
+
+            return {
+              showCard: false,
+              showButton: false,
+              buttonLabel: "",
+              hintText: "",
+            };
+          }
+
+          function updateInstallUi() {
+            if (!installHintCard || !installBtn || !installHint) return;
+
+            const state = getInstallUiState();
+            installHintCard.hidden = !state.showCard;
+
+            installBtn.style.display = state.showButton ? "inline-block" : "none";
+            installBtn.textContent = state.buttonLabel || "App installieren";
+            installHint.textContent = state.hintText || "";
+            installHint.style.display = state.hintText ? "block" : "none";
+          }
+
+          function registerBrowserServiceWorker() {
+            const isTrustedLocalhost = ["localhost", "127.0.0.1", "::1"].includes(
+              window.location.hostname,
+            );
+            if (isAndroidAppWebView()) return;
+            if (!("serviceWorker" in navigator)) return;
+            if (!(window.isSecureContext || isTrustedLocalhost)) return;
+
+            const register = () => {
+              navigator.serviceWorker
+                .register("./sw.js?v=" + SW_VERSION, { updateViaCache: "none" })
+                .then((registration) => {
+                  if (registration && typeof registration.update === "function") {
+                    registration.update().catch(() => {});
+                  }
+                })
+                .catch((e) => {
+                  console.warn("Service Worker konnte nicht registriert werden:", e);
+                });
+            };
+
+            if (document.readyState === "complete") {
+              register();
+              return;
+            }
+
+            window.addEventListener("load", register, { once: true });
+          }
+
+          window.addEventListener("beforeinstallprompt", (event) => {
+            if (isAndroidAppWebView()) return;
+            event.preventDefault();
+            deferredPrompt = event;
+            updateInstallUi();
+          });
+
+          window.addEventListener("appinstalled", () => {
+            deferredPrompt = null;
+            rememberKnownInstalledWebVersion();
+            updateInstallUi();
+          });
+          window.addEventListener("pageshow", () => {
+            syncKnownInstalledWebVersion();
+            updateInstallUi();
+          });
+          document.addEventListener("visibilitychange", () => {
+            if (document.hidden) return;
+            syncKnownInstalledWebVersion();
+            updateInstallUi();
+          });
+
+          function sanitizeFilenamePart(value) {
+            return String(value || "")
+              .replace(/[<>:"/\\|?*\u0000-\u001f]/g, " ")
+              .replace(/\s+/g, " ")
+              .trim();
+          }
+
+          function getCurrentAppName() {
+            try {
+              const androidBridge = getAndroidBridge();
+              if (
+                androidBridge &&
+                typeof androidBridge.getAppDisplayName === "function"
+              ) {
+                const nativeName = String(
+                  androidBridge.getAppDisplayName() || "",
+                ).trim();
+                if (nativeName) return nativeName;
+              }
+            } catch (e) {
+              console.warn("Nativer App-Name konnte nicht gelesen werden:", e);
+            }
+
+            const metaName = document
+              .querySelector('meta[name="application-name"]')
+              ?.getAttribute("content");
+            const docTitle = document.title;
+            return (
+              String(metaName || docTitle || APP_NAME_FALLBACK).trim() ||
+              APP_NAME_FALLBACK
+            );
+          }
+
+          function getCurrentAppVersion() {
+            try {
+              const androidBridge = getAndroidBridge();
+              if (
+                androidBridge &&
+                typeof androidBridge.getAppVersionName === "function"
+              ) {
+                const nativeVersion = String(
+                  androidBridge.getAppVersionName() || "",
+                ).trim();
+                if (nativeVersion) return nativeVersion;
+              }
+            } catch (e) {
+              console.warn(
+                "Native Versionsnummer konnte nicht gelesen werden:",
+                e,
+              );
+            }
+
+            const footerVersion = footerNote
+              ? String(footerNote.getAttribute("data-app-version") || "").trim()
+              : "";
+            if (footerVersion) return footerVersion;
+
+            const htmlVersion = String(
+              document.documentElement.getAttribute("data-app-version") || "",
+            ).trim();
+            if (htmlVersion) return htmlVersion;
+
+            return APP_VERSION_FALLBACK;
+          }
+
+          function buildHtmlExportBaseName() {
+            const safeAppName =
+              sanitizeFilenamePart(getCurrentAppName()) || APP_NAME_FALLBACK;
+            const safeVersion =
+              sanitizeFilenamePart(getCurrentAppVersion()) ||
+              APP_VERSION_FALLBACK;
+            return `${safeAppName}_ver_${safeVersion}`;
+          }
+
+          function buildHtmlExportFilename() {
+            return `${buildHtmlExportBaseName()}.html`;
+          }
+
+          function getPortableStorageKeys() {
+            const keys = [];
+            for (let i = 0; i < localStorage.length; i += 1) {
+              const key = localStorage.key(i);
+              if (!key) continue;
+              if (
+                key === STORAGE_KEY ||
+                key.startsWith("wortabspieler.settings.")
+              ) {
+                keys.push(key);
+              }
+            }
+            return Array.from(new Set(keys)).sort();
+          }
+
+          function buildPortableHtmlStatePayload() {
+            const selectedKeys = getPortableStorageKeys();
+            const storage = {};
+            selectedKeys.forEach((key) => {
+              const value = localStorage.getItem(key);
+              if (value !== null) {
+                storage[key] = value;
+              }
+            });
+
+            return {
+              app: getCurrentAppName(),
+              version: getCurrentAppVersion(),
+              namespace: "wortabspieler",
+              exportedAt: new Date().toISOString(),
+              entryCount: Object.keys(storage).length,
+              selectedKeys,
+              storage,
+            };
+          }
+
+          function serializePortableHtmlPayload(payload) {
+            return JSON.stringify(payload)
+              .replace(/</g, "\\u003C")
+              .replace(/>/g, "\\u003E")
+              .replace(/&/g, "\\u0026")
+              .replace(/\u2028/g, "\\u2028")
+              .replace(/\u2029/g, "\\u2029");
+          }
+
+          function embedPortableAppStateIntoHtml(htmlText) {
+            const safeHtmlText =
+              typeof htmlText === "string" ? htmlText : String(htmlText ?? "");
+            if (!safeHtmlText.trim()) return safeHtmlText;
+
+            const payload = buildPortableHtmlStatePayload();
+            const storageKeys =
+              payload && payload.storage ? Object.keys(payload.storage) : [];
+            if (storageKeys.length === 0) return safeHtmlText;
+
+            const serializedPayload = serializePortableHtmlPayload(payload);
+            const bootstrapScript =
+              `<script>(function(){const payload=${serializedPayload};` +
+              `try{const storage=window.localStorage;if(!storage||!payload||!payload.storage)return;` +
+              `const markerKey='__portableHtmlBootstrap_'+String(payload.exportedAt||'snapshot');` +
+              `if(storage.getItem(markerKey)==='1')return;` +
+              `Object.entries(payload.storage).forEach(([key,value])=>{storage.setItem(String(key),String(value));});` +
+              `storage.setItem(markerKey,'1');` +
+              `}catch(error){console.warn('Portable HTML-Daten konnten nicht initialisiert werden.',error);}})();` +
+              `<\/script>`;
+
+            if (safeHtmlText.includes("</head>")) {
+              return safeHtmlText.replace(
+                "</head>",
+                `${bootstrapScript}\n</head>`,
+              );
+            }
+
+            if (safeHtmlText.includes("</body>")) {
+              return safeHtmlText.replace(
+                "</body>",
+                `${bootstrapScript}\n</body>`,
+              );
+            }
+
+            return `${safeHtmlText}\n${bootstrapScript}`;
+          }
+
+          async function getBundledIndexHtmlText() {
+            const androidBridge = getAndroidBridge();
+            if (
+              androidBridge &&
+              typeof androidBridge.getBundledIndexHtml === "function"
+            ) {
+              try {
+                const nativeHtml = String(
+                  androidBridge.getBundledIndexHtml() || "",
+                );
+                if (nativeHtml.trim()) return nativeHtml;
+              } catch (e) {
+                console.warn(
+                  "Gebuendelte index.html konnte nicht gelesen werden:",
+                  e,
+                );
+              }
+            }
+
+            const currentUrl = window.location.href.split("#")[0].split("?")[0];
+            const response = await fetch(currentUrl, { cache: "no-store" });
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            return response.text();
+          }
+
+          function downloadTextFileRobust(
+            filename,
+            textContent,
+            mimeType = "text/plain;charset=utf-8",
+          ) {
+            const safeFilename = String(filename || "").trim() || "index.html";
+            const safeText =
+              typeof textContent === "string"
+                ? textContent
+                : String(textContent ?? "");
+            const androidBridge = getAndroidBridge();
+
+            if (
+              androidBridge &&
+              typeof androidBridge.saveTextFile === "function"
+            ) {
+              return !!androidBridge.saveTextFile(safeFilename, safeText);
+            }
+
+            try {
+              const blob = new Blob([safeText], {
+                type: mimeType,
+              });
+              const blobUrl = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.download = safeFilename;
+              link.href = blobUrl;
+              link.rel = "noopener";
+              link.style.display = "none";
+              document.body.appendChild(link);
+              link.click();
+              setTimeout(() => {
+                URL.revokeObjectURL(blobUrl);
+                link.remove();
+              }, 1200);
+              return true;
+            } catch (e) {
+              console.warn("Browser-Download fehlgeschlagen:", e);
+              return false;
+            }
+          }
+
+          function getCurrentStoryExportPayload() {
+            const content = String(inputEl?.value || "").replace(/\r\n?/g, "\n");
+            if (!content.trim()) return null;
+
+            const selectedStory = getStoryById(selectedStoryId);
+            const selectedStoryContent = selectedStory
+              ? String(selectedStory.content || "").replace(/\r\n?/g, "\n")
+              : "";
+            const exactSelectedStory =
+              selectedStory && selectedStoryContent === content
+                ? selectedStory
+                : null;
+            const inferredName = normalizeStoryName(
+              exactSelectedStory?.name || suggestStoryNameFromText(content),
+              "Neue Geschichte",
+            );
+            const fileName =
+              exactSelectedStory?.fileName || buildStoryFileNameFromName(inferredName);
+
+            return {
+              name: inferredName,
+              fileName,
+              content,
+            };
+          }
+
+          async function shareTextFileRobust(
+            filename,
+            textContent,
+            { title = "" } = {},
+          ) {
+            const safeFilename = String(filename || "").trim() || "export.txt";
+            const safeText =
+              typeof textContent === "string"
+                ? textContent
+                : String(textContent ?? "");
+            const shareTitle = String(title || safeFilename).trim() || safeFilename;
+            const androidBridge = getAndroidBridge();
+
+            if (
+              androidBridge &&
+              typeof androidBridge.shareTextFile === "function"
+            ) {
+              androidBridge.shareTextFile(safeFilename, safeText);
+              return { ok: true, mode: "native-share" };
+            }
+
+            if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+              if (typeof File !== "undefined") {
+                try {
+                  const shareFile = new File([safeText], safeFilename, {
+                    type: "text/plain;charset=utf-8",
+                  });
+                  if (
+                    typeof navigator.canShare !== "function" ||
+                    navigator.canShare({ files: [shareFile] })
+                  ) {
+                    await navigator.share({
+                      title: shareTitle,
+                      text: `Geschichte: ${shareTitle}`,
+                      files: [shareFile],
+                    });
+                    return { ok: true, mode: "web-share-file" };
+                  }
+                } catch (error) {
+                  if (error?.name === "AbortError") {
+                    return { ok: false, mode: "cancelled", cancelled: true };
+                  }
+                  console.warn("Datei-Teilen fehlgeschlagen, nutze Text-Fallback:", error);
+                }
+              }
+
+              try {
+                await navigator.share({
+                  title: shareTitle,
+                  text: safeText,
+                });
+                return { ok: true, mode: "web-share-text" };
+              } catch (error) {
+                if (error?.name === "AbortError") {
+                  return { ok: false, mode: "cancelled", cancelled: true };
+                }
+                console.warn("Text-Teilen fehlgeschlagen:", error);
+              }
+            }
+
+            const downloaded = downloadTextFileRobust(
+              safeFilename,
+              safeText,
+              "text/plain;charset=utf-8",
+            );
+            return downloaded
+              ? { ok: true, mode: "download" }
+              : { ok: false, mode: "unsupported" };
+          }
+
+          function pushExportStatus(message) {
+            if (!statusEl) return;
+            statusEl.textContent = message;
+            if (exportStatusResetTimer) clearTimeout(exportStatusResetTimer);
+            exportStatusResetTimer = setTimeout(() => {
+              if (!running) statusEl.textContent = "Bereit.";
+            }, HTML_EXPORT_STATUS_MS);
+          }
+
+          async function exportBundledIndexHtml() {
+            if (!exportHtmlBtn || exportHtmlBtn.disabled) return;
+            if (!supportsBundledIndexHtmlExport()) {
+              pushExportStatus("HTML-Export ist hier nicht verfuegbar.");
+              updateBundledIndexHtmlExportVisibility();
+              return;
+            }
+            const fileName = buildHtmlExportFilename();
+
+            exportHtmlBtn.disabled = true;
+            exportHtmlBtn.classList.add("is-busy");
+            pushExportStatus(`Exportiere ${fileName} ...`);
+
+            try {
+              const htmlText = await getBundledIndexHtmlText();
+              const portableHtml = embedPortableAppStateIntoHtml(htmlText);
+              const ok = downloadTextFileRobust(
+                fileName,
+                portableHtml,
+                "text/html;charset=utf-8",
+              );
+              if (!ok) {
+                throw new Error("Download rueckgabewert war false");
+              }
+              pushExportStatus(`HTML exportiert: ${fileName}`);
+            } catch (e) {
+              console.warn("HTML-Export fehlgeschlagen:", e);
+              pushExportStatus("HTML-Export fehlgeschlagen.");
+            } finally {
+              exportHtmlBtn.classList.remove("is-busy");
+              updateBundledIndexHtmlExportVisibility();
+            }
+          }
+
+          const DEFAULT_WORDS = [
+            "der",
+            "die",
+            "und",
+            "in",
+            "den",
+            "von",
+            "zu",
+            "das",
+            "mit",
+            "sich",
+            "des",
+            "auf",
+            "für",
+            "ist",
+            "im",
+            "dem",
+            "nicht",
+            "ein",
+            "eine",
+            "als",
+            "auch",
+            "es",
+            "an",
+            "werden",
+            "aus",
+            "er",
+            "hat",
+            "dass",
+            "ich",
+            "sie",
+            "nach",
+            "wird",
+            "bei",
+            "einer",
+            "oder",
+            "aber",
+            "vor",
+            "zur",
+            "noch",
+            "wie",
+            "einem",
+            "am",
+            "wenn",
+            "nur",
+            "war",
+            "sein",
+            "wir",
+            "man",
+            "was",
+            "so",
+            "kann",
+            "doch",
+            "um",
+            "über",
+            "da",
+            "bis",
+            "mehr",
+            "keine",
+            "schon",
+            "mir",
+            "dir",
+            "du",
+            "ihr",
+            "uns",
+            "mich",
+            "diese",
+            "dieser",
+            "dieses",
+            "wer",
+            "wo",
+            "hier",
+            "dort",
+            "heute",
+            "morgen",
+            "gestern",
+            "ja",
+            "nein",
+          ];
+
+          const DEFAULT_STORY = `Morgens öffnete Lea das Fenster und atmete die kühle Luft ein. Der Himmel war milchig blau, und die Stadt wirkte noch schläfrig. In der Küche wartete frischer Tee, leise dampfend auf dem Tisch. Auf dem Weg zur Arbeit lächelte ein Nachbar und hob kurz die Hand. Im Park raschelten die Blätter, als hätte jemand heimlich eine Nachricht versteckt. Ein Fahrrad klingelte, freundlich und kurz. Vor dem Bäcker blieb Lea stehen und roch nach warmem Brot. Sie kaufte ein kleines Brötchen, knusprig und leicht. Die Ampel sprang auf Grün, und die Kreuzung flutete mit Schritten. Ein Hund tappte nebenher, stolz mit roter Leine. Die Straßenbahn kam, ein sanftes Quietschen, dann Ruhe. Im Wagen las ein Kind laut die ersten Zeilen eines Buchs. Eine ältere Dame nickte zustimmend und lächelte. Am Fluss glitzerte das Wasser, als hätte es heimlich Sterne gesammelt. Lea stieg aus, drehte sich kurz zum Licht und atmete noch einmal tief ein.`;
+
+          let entries = [];
+          let order = [];
+          let idx = 0;
+          let timer = null;
+          let running = false;
+          let isPaused = false;
+          let countdownTimer = null;
+          let countdownDeadline = 0;
+          let autoCalib = { baseSize: null, delta: 0 };
+          let settingsCollapsed = true;
+          let stories = [];
+          let selectedStoryId = null;
+
+          function createStoryId() {
+            try {
+              if (
+                window.crypto &&
+                typeof window.crypto.randomUUID === "function"
+              ) {
+                return window.crypto.randomUUID();
+              }
+            } catch (e) {}
+
+            return `story_${Date.now().toString(36)}_${Math.random()
+              .toString(36)
+              .slice(2, 10)}`;
+          }
+
+          function normalizeStoryName(name, fallback = "Neue Geschichte") {
+            const cleaned = String(name || "")
+              .replace(/\s+/g, " ")
+              .trim();
+            return cleaned || fallback;
+          }
+
+          function baseStoryNameFromFile(fileName) {
+            const cleanFileName = String(fileName || "").trim();
+            if (!cleanFileName) return "Neue Geschichte";
+            return normalizeStoryName(
+              cleanFileName.replace(/\.[^.]+$/, ""),
+              "Neue Geschichte",
+            );
+          }
+
+          function buildStoryFileNameFromName(name) {
+            const safeBase = sanitizeFilenamePart(name) || "Neue Geschichte";
+            return safeBase.toLowerCase().endsWith(".txt")
+              ? safeBase
+              : `${safeBase}.txt`;
+          }
+
+          function suggestStoryNameFromText(content) {
+            const selectedStory = getStoryById(selectedStoryId);
+            if (selectedStory && selectedStory.name) {
+              return selectedStory.name;
+            }
+
+            const firstMeaningfulLine = String(content || "")
+              .split(/\n+/)
+              .map((line) => line.trim())
+              .find(Boolean);
+
+            if (!firstMeaningfulLine) return "Neue Geschichte";
+
+            const shortened =
+              firstMeaningfulLine.length > 60
+                ? `${firstMeaningfulLine.slice(0, 57).trim()}...`
+                : firstMeaningfulLine;
+            return normalizeStoryName(shortened, "Neue Geschichte");
+          }
+
+          function sortStoriesByName(items) {
+            return [...items].sort((left, right) =>
+              String(left.name || "").localeCompare(String(right.name || ""), "de", {
+                sensitivity: "base",
+                numeric: true,
+              }),
+            );
+          }
+
+          function normalizeStories(rawStories) {
+            if (!Array.isArray(rawStories)) return [];
+            const seenIds = new Set();
+
+            return sortStoriesByName(
+              rawStories
+                .map((story, index) => {
+                  if (!story || typeof story !== "object") return null;
+                  const content =
+                    typeof story.content === "string"
+                      ? story.content
+                      : typeof story.text === "string"
+                        ? story.text
+                        : "";
+                  if (!content.trim()) return null;
+
+                  const fileName =
+                    typeof story.fileName === "string"
+                      ? story.fileName.trim()
+                      : "";
+                  const fallbackName = fileName
+                    ? baseStoryNameFromFile(fileName)
+                    : `Geschichte ${index + 1}`;
+                  const name = normalizeStoryName(story.name, fallbackName);
+                  let id =
+                    typeof story.id === "string" && story.id.trim()
+                      ? story.id.trim()
+                      : createStoryId();
+                  if (seenIds.has(id)) id = createStoryId();
+                  seenIds.add(id);
+
+                  return {
+                    id,
+                    name,
+                    content,
+                    fileName,
+                    updatedAt:
+                      typeof story.updatedAt === "string" && story.updatedAt.trim()
+                        ? story.updatedAt.trim()
+                        : new Date().toISOString(),
+                  };
+                })
+                .filter(Boolean),
+            );
+          }
+
+          function getStoryById(storyId) {
+            if (!storyId) return null;
+            return stories.find((story) => story.id === storyId) || null;
+          }
+
+          function buildUniqueStoryName(name, ignoreId = null) {
+            const baseName = normalizeStoryName(name);
+            const usedNames = new Set(
+              stories
+                .filter((story) => story.id !== ignoreId)
+                .map((story) =>
+                  String(story.name || "").trim().toLocaleLowerCase("de"),
+                ),
+            );
+            if (!usedNames.has(baseName.toLocaleLowerCase("de"))) return baseName;
+
+            let counter = 2;
+            let candidate = `${baseName} (${counter})`;
+            while (usedNames.has(candidate.toLocaleLowerCase("de"))) {
+              counter += 1;
+              candidate = `${baseName} (${counter})`;
+            }
+            return candidate;
+          }
+
+          function updateStoryLibraryUi() {
+            if (!storySelectEl) return;
+
+            const selectedStory = getStoryById(selectedStoryId);
+            const sortedStories = sortStoriesByName(stories);
+            storySelectEl.innerHTML = "";
+
+            const placeholderOption = document.createElement("option");
+            placeholderOption.value = "";
+            placeholderOption.textContent =
+              sortedStories.length > 0
+                ? "Geschichte auswaehlen..."
+                : "Keine Geschichte gespeichert";
+            storySelectEl.appendChild(placeholderOption);
+
+            sortedStories.forEach((story) => {
+              const option = document.createElement("option");
+              option.value = story.id;
+              option.textContent = story.name;
+              storySelectEl.appendChild(option);
+            });
+
+            storySelectEl.disabled = sortedStories.length === 0;
+            storySelectEl.value = selectedStory ? selectedStory.id : "";
+            const hasInputText = !!String(inputEl?.value || "").trim();
+            if (saveStoryBtn) {
+              saveStoryBtn.disabled = !hasInputText;
+            }
+            if (shareStoryBtn) {
+              shareStoryBtn.disabled =
+                !hasInputText || !supportsStoryExport();
+            }
+            if (deleteStoryBtn) deleteStoryBtn.disabled = !selectedStory;
+
+            if (storyLibraryHintEl) {
+              if (!sortedStories.length) {
+                storyLibraryHintEl.textContent =
+                  "Keine gespeicherten Geschichten vorhanden.";
+              } else if (selectedStory) {
+                storyLibraryHintEl.textContent = selectedStory.fileName
+                  ? `Ausgewaehlt: ${selectedStory.name} (${selectedStory.fileName})`
+                  : `Ausgewaehlt: ${selectedStory.name}`;
+              } else if (sortedStories.length === 1) {
+                storyLibraryHintEl.textContent =
+                  "1 gespeicherte Geschichte verfuegbar.";
+              } else {
+                storyLibraryHintEl.textContent = `${sortedStories.length} gespeicherte Geschichten verfuegbar.`;
+              }
+            }
+          }
+
+          function syncSelectedStoryToCurrentInput() {
+            const selectedStory = getStoryById(selectedStoryId);
+            const isStoryMode = !!(sentenceModeEl && sentenceModeEl.checked);
+            const inputValue = String(inputEl?.value || "");
+            if (!selectedStory || !isStoryMode || inputValue !== selectedStory.content) {
+              selectedStoryId = null;
+            }
+            updateStoryLibraryUi();
+          }
+
+          function readStoryFileAsText(file) {
+            if (!file) {
+              return Promise.reject(new Error("Keine Datei ausgewaehlt."));
+            }
+
+            if (typeof file.text === "function") {
+              return file.text();
+            }
+
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(String(reader.result || ""));
+              reader.onerror = () =>
+                reject(reader.error || new Error("Datei konnte nicht gelesen werden."));
+              reader.readAsText(file);
+            });
+          }
+
+          function saveCurrentInputAsStory() {
+            const content = String(inputEl?.value || "").replace(/\r\n?/g, "\n");
+            if (!content.trim()) {
+              alert("Bitte zuerst einen Text in das Eingabefeld einfuegen.");
+              return null;
+            }
+
+            const suggestedName = suggestStoryNameFromText(content);
+            const requestedName = window.prompt(
+              "Name fuer die Geschichte:",
+              suggestedName,
+            );
+            if (requestedName === null) return null;
+
+            const finalName = buildUniqueStoryName(
+              normalizeStoryName(requestedName, suggestedName),
+            );
+            const story = {
+              id: createStoryId(),
+              name: finalName,
+              content,
+              fileName: buildStoryFileNameFromName(finalName),
+              updatedAt: new Date().toISOString(),
+            };
+
+            stories = sortStoriesByName([...stories, story]);
+            loadStoryIntoInput(story);
+            if (statusEl) {
+              statusEl.textContent = `Geschichte gespeichert: ${finalName}`;
+            }
+            return story;
+          }
+
+          async function exportCurrentStory() {
+            if (!shareStoryBtn || shareStoryBtn.disabled) return;
+
+            const payload = getCurrentStoryExportPayload();
+            if (!payload) {
+              pushExportStatus("Bitte zuerst einen Text oder eine Geschichte eingeben.");
+              updateStoryLibraryUi();
+              return;
+            }
+
+            const originalLabel = shareStoryBtn.textContent;
+            shareStoryBtn.disabled = true;
+            shareStoryBtn.classList.add("is-busy");
+            shareStoryBtn.textContent = "Exportiere...";
+
+            try {
+              const result = await shareTextFileRobust(payload.fileName, payload.content, {
+                title: payload.name,
+              });
+
+              if (result.ok) {
+                if (result.mode === "download") {
+                  pushExportStatus(`Geschichte exportiert: ${payload.fileName}`);
+                } else {
+                  pushExportStatus(`Teilen geoeffnet: ${payload.name}`);
+                }
+              } else if (result.cancelled) {
+                pushExportStatus("Teilen abgebrochen.");
+              } else {
+                pushExportStatus("Geschichten-Export ist hier nicht verfuegbar.");
+              }
+            } catch (error) {
+              console.warn("Geschichte konnte nicht exportiert werden:", error);
+              pushExportStatus("Geschichten-Export fehlgeschlagen.");
+            } finally {
+              shareStoryBtn.classList.remove("is-busy");
+              shareStoryBtn.textContent = originalLabel;
+              updateStoryLibraryUi();
+            }
+          }
+
+          function loadStoryIntoInput(story, { shouldSave = true } = {}) {
+            if (!story) return;
+            selectedStoryId = story.id;
+            if (sentenceModeEl) sentenceModeEl.checked = true;
+            updateSentenceModeLabel();
+            inputEl.value = story.content;
+            parseInput();
+            updateStoryLibraryUi();
+            if (shouldSave) saveSettings();
+            if (statusEl) statusEl.textContent = `Geschichte geladen: ${story.name}`;
+            inputEl.focus();
+            fitAll();
+            if (running) start(false);
+          }
+
+          function fitBox(box) {
+            if (!box) return;
+            const span = box.querySelector("span");
+            if (!span) return;
+            const base = Number(sizeEl.value) || 60;
+            let px = base;
+            box.style.fontSize = px + "px";
+            const tooBig = () =>
+              span.scrollHeight > box.clientHeight ||
+              span.scrollWidth > box.clientWidth;
+            while (px > 20 && tooBig()) {
+              px -= 2;
+              box.style.fontSize = px + "px";
+            }
+          }
+          function fitAll() {
+            fitBox(outputBox);
+            const o = overlayEl && overlayEl.querySelector(".overlay-out");
+            if (o) fitBox(o);
+          }
+
+          const root = document.documentElement;
+          function updateOverlayLayout() {
+            try {
+              const bar = document.querySelector(".overlay-bar");
+              const isLandscape =
+                window.matchMedia &&
+                window.matchMedia("(orientation: landscape)").matches;
+              const offset = isLandscape ? 5 : 20;
+              if (bar) {
+                root.style.setProperty("--bar-height", bar.offsetHeight + "px");
+              }
+              root.style.setProperty("--bar-offset", offset + "px");
+            } catch (e) {}
+          }
+          window.__updateBlitzLayout = updateOverlayLayout;
+
+          function migrateOld() {
+            try {
+              if (!localStorage.getItem(STORAGE_KEY)) {
+                const legacyKey = LEGACY_STORAGE_KEYS.find((key) =>
+                  localStorage.getItem(key),
+                );
+                const legacyValue = legacyKey
+                  ? localStorage.getItem(legacyKey)
+                  : null;
+                if (legacyValue) {
+                  localStorage.setItem(STORAGE_KEY, legacyValue);
+                }
+              }
+            } catch (e) {
+              console.warn("Migration übersprungen:", e);
+            }
+          }
+
+          function loadSettings() {
+            try {
+              const raw = localStorage.getItem(STORAGE_KEY);
+              if (!raw) return null;
+              return JSON.parse(raw);
+            } catch (e) {
+              console.warn("Konnte Settings nicht lesen:", e);
+              return null;
+            }
+          }
+          function saveSettings() {
+            try {
+              const current = loadSettings() || {};
+              const textNow = String(inputEl.value || "");
+              const sentenceMode = !!(sentenceModeEl && sentenceModeEl.checked);
+              const data = {
+                ...current,
+                ...(sentenceMode
+                  ? { storyText: textNow }
+                  : { wordText: textNow }),
+                stories,
+                selectedStoryId,
+                mode:
+                  document.querySelector('input[name="mode"]:checked')?.value ||
+                  current.mode ||
+                  DEFAULT_MODE,
+                loop: !!(loopEl && loopEl.checked),
+                trim: !!$("#trim")?.checked,
+                interval: Number(
+                  intervalEl?.value || current.interval || DEFAULT_INTERVAL,
+                ),
+                size: Number(sizeEl?.value || current.size || DEFAULT_SIZE),
+                weight: Number(weightEl?.value || current.weight || 300),
+                autoWeight: !!(autoWeightEl && autoWeightEl.checked),
+                lockUi: settingsCollapsed,
+                family: familyEl?.value || current.family || DEFAULT_FAMILY,
+                autoCalibBase: autoCalib.baseSize,
+                autoCalibDelta: autoCalib.delta,
+                sentenceMode: sentenceMode,
+                separator:
+                  (separatorEl && separatorEl.value) ||
+                  current.separator ||
+                  DEFAULT_SEPARATOR,
+              };
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            } catch (e) {
+              console.warn("Konnte Settings nicht speichern:", e);
+            }
+          }
+
+          function getTextForMode(s) {
+            const s2 = s || {};
+            const sentenceMode = !!(sentenceModeEl && sentenceModeEl.checked);
+            if (sentenceMode) {
+              if (
+                typeof s2.storyText === "string" &&
+                s2.storyText.trim().length > 0
+              )
+                return s2.storyText;
+              if (typeof s2.words === "string" && s2.words.trim().length > 0)
+                return s2.words;
+              return DEFAULT_STORY;
+            } else {
+              if (
+                typeof s2.wordText === "string" &&
+                s2.wordText.trim().length > 0
+              )
+                return s2.wordText;
+              if (typeof s2.words === "string" && s2.words.trim().length > 0)
+                return s2.words;
+              return DEFAULT_WORDS.join(", ");
+            }
+          }
+
+          function applySettings(s) {
+            const s2 = s || {};
+            stories = normalizeStories(s2.stories);
+            selectedStoryId =
+              typeof s2.selectedStoryId === "string" ? s2.selectedStoryId : null;
+            const sentenceMode = !!s2.sentenceMode;
+            if (sentenceModeEl) sentenceModeEl.checked = sentenceMode;
+            updateSentenceModeLabel();
+            const mode = s2.mode || DEFAULT_MODE;
+            const modeEl = document.querySelector(
+              `input[name="mode"][value="${mode}"]`,
+            );
+            if (modeEl) modeEl.checked = true;
+            if (loopEl) loopEl.checked = s2.loop ?? DEFAULT_LOOP;
+            const trimEl = $("#trim");
+            if (trimEl) trimEl.checked = s2.trim ?? DEFAULT_TRIM;
+            const itv = Number(s2.interval ?? DEFAULT_INTERVAL);
+            intervalEl.value = String(itv);
+            intervalRangeEl.value = String(itv);
+            const intervalVal = $("#intervalVal");
+            if (intervalVal) intervalVal.textContent = `${itv}s`;
+            const size = Number(s2.size ?? DEFAULT_SIZE);
+            sizeEl.value = String(size);
+            if (sizeValEl) sizeValEl.textContent = `${size}px`;
+            const autoW =
+              typeof s2.autoWeight === "boolean" ? s2.autoWeight : true;
+            autoWeightEl.checked = autoW;
+            settingsCollapsed =
+              typeof s2.lockUi === "boolean" ? s2.lockUi : true;
+            autoCalib.baseSize = s2.autoCalibBase ?? null;
+            autoCalib.delta = Number(s2.autoCalibDelta ?? 0);
+            if (separatorEl) separatorEl.value = s2.separator || DEFAULT_SEPARATOR;
+            inputEl.value = getTextForMode(s2);
+            let weight;
+            if (autoW) {
+              const wAuto = computeAutoWeight(size);
+              const wCal = clampWeight(wAuto + (autoCalib.delta || 0));
+              weight = typeof s2.weight === "number" ? s2.weight : wCal;
+            } else {
+              weight = typeof s2.weight === "number" ? s2.weight : 200;
+            }
+            weightEl.value = String(weight);
+            if (weightValEl) weightValEl.textContent = String(weight);
+            applyTypography(size, weight);
+            const family = s2.family || DEFAULT_FAMILY;
+            familyEl.value = family;
+            applyFamily(family);
+            syncSelectedStoryToCurrentInput();
+            updateVisibility();
+            fitAll();
+          }
+
+          function updateSentenceModeLabel() {
+            if (!sentenceModeLabel) return;
+            const isChecked = sentenceModeEl && sentenceModeEl.checked;
+            sentenceModeLabel.textContent = isChecked
+              ? "Satzmodus (trennt bei .!? & Zeilenumbruch)"
+              : "ganze Sätze (Geschichte)";
+
+            // Auch das Eingabe-Label aktualisieren
+            const inputLabel = document.getElementById("inputLabel");
+            if (inputLabel) {
+              inputLabel.textContent = isChecked
+                ? "Eingabe Sätze oder ganze Geschichten."
+                : "Eingabe (Wortliste)";
+            }
+
+            // Separator-Dropdown-Sichtbarkeit steuern
+            const separatorConfig = document.getElementById("separatorConfig");
+            if (separatorConfig) {
+              // Wenn Satzmodus aktiv ist (isChecked = true), dann Dropdown ausblenden
+              // Wenn Wortmodus aktiv ist (isChecked = false), dann Dropdown einblenden
+              separatorConfig.style.display = isChecked ? "none" : "flex";
+            }
+          }
+
+          function syncSettingsToggleButton() {
+            if (settingsToggleBtn)
+              settingsToggleBtn.setAttribute(
+                "aria-expanded",
+                String(!settingsCollapsed),
+              );
+            if (settingsToggleHint)
+              settingsToggleHint.textContent = settingsCollapsed
+                ? "eingeklappt"
+                : "geoeffnet";
+          }
+
+          function updateVisibility() {
+            const auto = !!(autoWeightEl && autoWeightEl.checked);
+            const lock = settingsCollapsed;
+            if (typeBlock) {
+              typeBlock.classList.toggle("hidden", lock);
+            }
+            if (weightRow) {
+              weightRow.classList.toggle("hidden", auto);
+            }
+            sizeEl.disabled = lock;
+            autoWeightEl.disabled = lock;
+            weightEl.disabled = lock || auto;
+            familyEl.disabled = lock;
+            if (lockRow) lockRow.style.marginTop = lock ? "14px" : "8px";
+            syncSettingsToggleButton();
+            updateBundledIndexHtmlExportVisibility();
+
+            // NEU: Weitere Elemente bei Sperre verstecken
+            // Reset (alles)
+            if (resetBtn) resetBtn.classList.toggle("hidden", lock);
+            // Nach letztem Eintrag neu beginnen
+            if (loopEl && loopEl.closest("label"))
+              loopEl.closest("label").classList.toggle("hidden", lock);
+            // Leere Einträge entfernen
+            const trimEl = $("#trim");
+            if (trimEl && trimEl.closest("label"))
+              trimEl.closest("label").classList.toggle("hidden", lock);
+            if (settingsActions)
+              settingsActions.classList.toggle("hidden", lock);
+          }
+
+          function applyTypography(px, weight) {
+            [
+              outputBox,
+              overlayEl && overlayEl.querySelector(".overlay-out"),
+            ].forEach((box) => {
+              if (!box) return;
+              box.style.fontSize = px + "px";
+              box.style.fontWeight = String(weight);
+            });
+            const fam = familyEl.value;
+            applyFamily(fam);
+          }
+          function applyFamily(val) {
+            const famValue =
+              val === "serif"
+                ? "serif"
+                : val === "mono"
+                  ? 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace'
+                  : "";
+            [
+              outputBox,
+              overlayEl && overlayEl.querySelector(".overlay-out"),
+            ].forEach((box) => {
+              if (!box) return;
+              box.style.fontFamily = famValue;
+            });
+          }
+          function computeAutoWeight(px) {
+            const minPx = 24,
+              maxPx = 160,
+              minW = 300,
+              maxW = 900;
+            const t = Math.max(0, Math.min(1, (px - minPx) / (maxPx - minPx)));
+            const raw = minW + t * (maxW - minW);
+            return clampWeight(raw);
+          }
+
+          function splitWords(text) {
+            const sepValue = (separatorEl && separatorEl.value) || "space";
+            let regex;
+
+            switch (sepValue) {
+              case "space":
+                regex = /\s+/g;
+                break;
+              case "newline":
+                regex = /[\r\n]+/g;
+                break;
+              case "comma":
+                regex = /,+/g;
+                break;
+              case "period":
+                regex = /\.+/g;
+                break;
+              case "comma_period":
+                regex = /[,.]+/g;
+                break;
+              case "semicolon":
+                regex = /;+/g;
+                break;
+              case "colon":
+                regex = /:+/g;
+                break;
+              case "question":
+                regex = /\?+/g;
+                break;
+              case "exclamation":
+                regex = /!+/g;
+                break;
+              case "whitespace_comma_semicolon":
+                regex = /[\s,;]+/g;
+                break;
+              case "punctuation":
+                regex = /[.!?]+/g;
+                break;
+              default:
+                // Fallback to space for any unknown value
+                regex = /\s+/g;
+            }
+
+            let words = (text || "")
+              .split(regex)
+              .map((w) => w.trim())
+              .filter(Boolean);
+
+            // Bei Leerzeichen-Trennung (altes Verhalten) zusätzlich Satzzeichen entfernen
+            if (sepValue === "space") {
+              words = words
+                .map((word) => word.replace(/[.!?,:;]+$/, ""))
+                .filter(Boolean);
+            }
+
+            return words;
+          }
+
+          function splitSentences(text) {
+            if (!text) return [];
+            // Use lookbehind to split after punctuation or newlines, keeping the punctuation.
+            // Newlines are effectively delimiters; inner formatting should stay preserved.
+            const segments = text.split(/(?<=[.!?…\n])/g);
+            return segments
+              .map((segment) => String(segment || "").replace(/\r/g, ""))
+              .filter((segment) => segment.trim().length > 0);
+          }
+
+          function parseInput() {
+            const raw = inputEl.value || "";
+            const useSentences = !!(sentenceModeEl && sentenceModeEl.checked);
+            let arr = useSentences ? splitSentences(raw) : splitWords(raw);
+            const trimEl = $("#trim");
+            if (trimEl && trimEl.checked) arr = arr.filter(Boolean);
+            else arr = arr.filter((x) => x !== "");
+            entries = arr;
+            if (countEl) countEl.textContent = String(entries.length);
+            return entries;
+          }
+          function getMode() {
+            const m = document.querySelector('input[name="mode"]:checked');
+            return m ? m.value : "sequential";
+          }
+          function shuffle(a) {
+            for (let i = a.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+          }
+          function buildOrder() {
+            const mode = getMode();
+            order = Array.from({ length: entries.length }, (_, i) => i);
+            if (mode === "random") shuffle(order);
+            idx = 0;
+          }
+
+          function charLenNoWs(s) {
+            return (s || "").replace(/\s+/g, "").length;
+          }
+          function updateLenCounters(val) {
+            var len = 0;
+            if (typeof val === "string") {
+              len = charLenNoWs(val);
+            }
+            var c1 = document.getElementById("lenOut");
+            var c2 = document.getElementById("lenOv");
+            [c1, c2].forEach(function (el) {
+              if (!el) return;
+              if (!el.dataset) el.dataset = {};
+              el.dataset.len = String(len);
+              if (!running) {
+                el.textContent = el.dataset.len || "0";
+              }
+            });
+          }
+          function updateTimerCounters(total, remain) {
+            var c1 = document.getElementById("lenOut");
+            var c2 = document.getElementById("lenOv");
+            [c1, c2].forEach(function (el) {
+              if (!el) return;
+              if (!el.dataset) el.dataset = {};
+              el.dataset.total = String(total);
+              el.dataset.remain = String(remain);
+              el.textContent =
+                "Lesezeit: " + String(total) + " / " + String(remain);
+            });
+          }
+
+          function showCurrent() {
+            if (!entries.length) {
+              if (outputText) outputText.textContent = "";
+              if (overlayText) overlayText.textContent = "";
+              updateLenCounters("");
+              return;
+            }
+            const i = order[idx] ?? 0;
+            const txt = entries[i];
+            if (outputText) outputText.textContent = txt;
+            if (overlayText) overlayText.textContent = txt;
+            if (statusEl)
+              statusEl.textContent = `Eintrag ${Math.min(idx + 1, order.length)} von ${order.length}`;
+            updateLenCounters(txt);
+            fitAll();
+          }
+          function step() {
+            if (!entries.length) return stop();
+            idx++;
+            if (idx >= order.length) {
+              if (loopEl && loopEl.checked && order.length > 0) {
+                buildOrder();
+              } else {
+                stop();
+                return;
+              }
+            }
+            showCurrent();
+          }
+
+          function computeDelay() {
+            const i = order[idx] ?? 0;
+            const currentText = entries[i] || "";
+            const charCount = charLenNoWs(currentText); // Zeichen ohne Leerzeichen
+            const lesezeit = Number((intervalEl && intervalEl.value) || 0.5); // eingestellte Lesezeit pro Zeichen
+            return Math.max(100, charCount * lesezeit * 1000); // Zeichen × Lesezeit in ms
+          }
+          function scheduleNext() {
+            if (!running || isPaused) return;
+            const ms = computeDelay();
+            const i = order[idx] ?? 0;
+            const currentText = entries[i] || "";
+            const charCount = charLenNoWs(currentText);
+            const lesezeit = Number((intervalEl && intervalEl.value) || 0.5);
+
+            if (statusEl) {
+              statusEl.textContent = `Läuft – "${currentText.substring(0, 20)}${currentText.length > 20 ? "..." : ""}" (${charCount} Zeichen × ${lesezeit}s = ${(ms / 1000).toFixed(1)}s)`;
+            }
+
+            if (timer) clearTimeout(timer);
+            if (countdownTimer) {
+              clearInterval(countdownTimer);
+              countdownTimer = null;
+            }
+
+            const totalSec = Math.max(1, Math.ceil(ms / 1000));
+            countdownDeadline =
+              typeof performance !== "undefined" && performance.now
+                ? performance.now() + ms
+                : Date.now() + ms;
+            updateTimerCounters(totalSec, totalSec);
+
+            countdownTimer = setInterval(function () {
+              const now =
+                typeof performance !== "undefined" && performance.now
+                  ? performance.now()
+                  : Date.now();
+              let remain = Math.max(
+                0,
+                Math.ceil((countdownDeadline - now) / 1000),
+              );
+              updateTimerCounters(totalSec, remain);
+              if (remain <= 0) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+              }
+            }, 250);
+
+            timer = setTimeout(function () {
+              step();
+              if (running) scheduleNext();
+            }, ms);
+          }
+
+          async function enterFullscreen() {
+            const target = overlayEl || document.documentElement;
+            try {
+              if (!document.fullscreenElement && target) {
+                if (typeof target.requestFullscreen === "function") {
+                  try {
+                    await target.requestFullscreen({ navigationUI: "hide" });
+                  } catch (_requestOptionsError) {
+                    await target.requestFullscreen();
+                  }
+                }
+              }
+            } catch (e) {
+              console.warn("Fullscreen nicht moeglich:", e);
+            }
+            return;
+          }
+          async function exitFullscreen() {
+            try {
+              if (document.fullscreenElement && document.exitFullscreen) {
+                await document.exitFullscreen();
+              }
+            } catch (e) {
+              console.warn("Fullscreen verlassen fehlgeschlagen:", e);
+            }
+            return;
+          }
+
+          function openOverlay() {
+            if (!overlayEl) return;
+            overlayEl.classList.remove("hidden");
+            overlayEl.setAttribute("aria-hidden", "false");
+            document.documentElement.style.overflow = "hidden";
+            try {
+              history.pushState({ overlay: true }, "", "#lesen");
+            } catch (e) {}
+            if (statusEl) {
+              statusEl.dataset.prevDisplay = statusEl.style.display || "";
+              statusEl.style.display = "none";
+            }
+            void enterFullscreen();
+            updateOverlayLayout();
+            updateButtons();
+            fitAll();
+          }
+          function closeOverlay() {
+            if (!overlayEl) return;
+            overlayEl.classList.add("hidden");
+            overlayEl.setAttribute("aria-hidden", "true");
+            document.documentElement.style.overflow = "";
+            exitFullscreen();
+            try {
+              if (location.hash === "#lesen") {
+                history.back();
+              }
+            } catch (e) {}
+            if (statusEl) {
+              statusEl.style.display = statusEl.dataset.prevDisplay || "";
+            }
+            updateButtons();
+          }
+
+          function start(playFromUi = true) {
+            parseInput();
+            if (entries.length === 0) {
+              alert(
+                "Bitte gib mindestens einen Eintrag ein oder lade die Standardliste (Text‑Reset).",
+              );
+              return;
+            }
+            buildOrder();
+            if (timer) clearTimeout(timer);
+            running = true;
+            isPaused = false;
+            updateButtons();
+            if (playFromUi) openOverlay();
+            else if (overlayEl && !overlayEl.classList.contains("hidden"))
+              void enterFullscreen();
+            showCurrent();
+            scheduleNext();
+          }
+          function stop() {
+            if (timer) clearTimeout(timer);
+            timer = null;
+            if (countdownTimer) {
+              clearInterval(countdownTimer);
+              countdownTimer = null;
+            }
+            running = false;
+            isPaused = false;
+            updateButtons();
+            if (statusEl) statusEl.textContent = "Angehalten.";
+            var c1 = document.getElementById("lenOut"),
+              c2 = document.getElementById("lenOv");
+            [c1, c2].forEach(function (el) {
+              if (!el) return;
+              var v = (el.dataset && el.dataset.len) || "0";
+              el.textContent = v;
+            });
+            closeOverlay();
+          }
+
+          function prevNow() {
+            if (!entries.length || !running) return;
+            idx = Math.max(0, idx - 1);
+            showCurrent();
+
+            // Unconditionally pause the player if it was running.
+            isPaused = true;
+            if (timer) clearTimeout(timer);
+            if (countdownTimer) clearInterval(countdownTimer);
+            if (statusEl) statusEl.textContent = "Pausiert.";
+            updateButtons();
+          }
+
+          function togglePause() {
+            if (!running) return;
+            isPaused = !isPaused;
+            if (isPaused) {
+              if (timer) clearTimeout(timer);
+              if (countdownTimer) clearInterval(countdownTimer);
+              if (statusEl) statusEl.textContent = "Pausiert.";
+            } else {
+              scheduleNext();
+            }
+            updateButtons();
+          }
+
+          function nextNow() {
+            if (!entries.length || !running) return;
+            idx = Math.min(idx + 1, order.length - 1);
+            showCurrent();
+
+            // Unconditionally pause the player if it was running.
+            isPaused = true;
+            if (timer) clearTimeout(timer);
+            if (countdownTimer) clearInterval(countdownTimer);
+            if (statusEl) statusEl.textContent = "Pausiert.";
+            updateButtons();
+
+            if (idx >= order.length && !(loopEl && loopEl.checked)) {
+              /* Ende */
+            }
+          }
+
+          function updateButtons() {
+            const s = running;
+            if (startBtn) startBtn.disabled = s;
+            if (stopBtn) stopBtn.disabled = !s;
+            if (prevBtn) prevBtn.disabled = !s;
+            if (pauseBtn) pauseBtn.disabled = !s;
+            if (nextBtn) nextBtn.disabled = !s;
+
+            if (ovStart) ovStart.disabled = s;
+            if (ovStop) ovStop.disabled = !s;
+            if (ovPrevBtn) ovPrevBtn.disabled = !s;
+            if (ovPauseBtn) ovPauseBtn.disabled = !s;
+            if (ovNextBtn) ovNextBtn.disabled = !s;
+
+            // Handle pause button icon
+            if (running) {
+              const pauseSymbol = isPaused ? "▶️" : "⏸";
+              if (pauseBtn) pauseBtn.innerHTML = pauseSymbol;
+              if (ovPauseBtn) ovPauseBtn.innerHTML = pauseSymbol;
+            }
+
+            updateOverlayLayout();
+          }
+
+          // Browser/Seiten-Lebenszyklus
+          window.addEventListener("popstate", (ev) => {
+            if (!overlayEl.classList.contains("hidden")) {
+              ev.preventDefault?.();
+              stop();
+            }
+          });
+          window.addEventListener("pagehide", () => {
+            if (!overlayEl.classList.contains("hidden")) stop();
+          });
+          document.addEventListener("visibilitychange", () => {
+            if (document.hidden && !overlayEl.classList.contains("hidden"))
+              stop();
+          });
+
+          // Debounce Speichern
+          function debounce(fn, ms) {
+            let t;
+            return (...args) => {
+              clearTimeout(t);
+              t = setTimeout(() => fn(...args), ms);
+            };
+          }
+          const debouncedSave = debounce(saveSettings, 400);
+
+          // Bindings
+          inputEl.addEventListener("input", () => {
+            parseInput();
+            syncSelectedStoryToCurrentInput();
+            debouncedSave();
+            fitAll();
+          });
+          inputEl.addEventListener("change", () => {
+            parseInput();
+            syncSelectedStoryToCurrentInput();
+            saveSettings();
+            fitAll();
+          });
+          document.querySelectorAll('input[name="mode"]').forEach((el) =>
+            el.addEventListener("change", () => {
+              saveSettings();
+              if (running) start(false);
+            }),
+          );
+          loopEl.addEventListener("change", () => saveSettings());
+          const trimChk = $("#trim");
+          if (trimChk)
+            trimChk.addEventListener("change", () => {
+              parseInput();
+              saveSettings();
+            });
+          sentenceModeEl.addEventListener("change", () => {
+            updateSentenceModeLabel();
+            const s = loadSettings() || {};
+            inputEl.value = getTextForMode(s);
+            parseInput();
+            syncSelectedStoryToCurrentInput();
+            saveSettings();
+            if (running) start(false);
+            fitAll();
+          });
+
+          function syncIntervalFromRange() {
+            intervalEl.value = intervalRangeEl.value;
+            const span = $("#intervalVal");
+            if (span) span.textContent = `${intervalRangeEl.value}s`;
+          }
+          function syncIntervalFromNumber() {
+            intervalRangeEl.value = intervalEl.value;
+            const span = $("#intervalVal");
+            if (span) span.textContent = `${intervalEl.value}s`;
+          }
+          intervalRangeEl.addEventListener("input", () => {
+            syncIntervalFromRange();
+            debouncedSave();
+          });
+          intervalRangeEl.addEventListener("change", () => {
+            syncIntervalFromRange();
+            saveSettings();
+            if (running) start(false);
+          });
+          intervalEl.addEventListener("input", () => {
+            syncIntervalFromNumber();
+            debouncedSave();
+          });
+          intervalEl.addEventListener("change", () => {
+            syncIntervalFromNumber();
+            saveSettings();
+            if (running) start(false);
+          });
+
+          sizeEl.addEventListener("input", () => {
+            const px = Number(sizeEl.value);
+            if (sizeValEl) sizeValEl.textContent = px + "px";
+            let weight = Number(weightEl.value);
+            if (autoWeightEl.checked) {
+              const wAuto = computeAutoWeight(px);
+              weight = clampWeight(wAuto + (autoCalib.delta || 0));
+              weightEl.value = String(weight);
+              if (weightValEl) weightValEl.textContent = String(weight);
+            }
+            applyTypography(px, weight);
+            debouncedSave();
+            fitAll();
+          });
+          sizeEl.addEventListener("change", () => {
+            saveSettings();
+          });
+
+          weightEl.addEventListener("input", () => {
+            if (autoWeightEl.checked) return;
+            const w = clampWeight(weightEl.value);
+            weightEl.value = String(w);
+            if (weightValEl) weightValEl.textContent = String(w);
+            applyTypography(Number(sizeEl.value), w);
+            debouncedSave();
+          });
+          weightEl.addEventListener("change", () => {
+            if (!autoWeightEl.checked) saveSettings();
+          });
+
+          autoWeightEl.addEventListener("change", () => {
+            const px = Number(sizeEl.value);
+            const currentW = clampWeight(weightEl.value || 300);
+            if (autoWeightEl.checked) {
+              autoCalib.baseSize = px;
+              autoCalib.delta = currentW - computeAutoWeight(px);
+              const w = clampWeight(computeAutoWeight(px) + autoCalib.delta);
+              weightEl.value = String(w);
+              if (weightValEl) weightValEl.textContent = String(w);
+              applyTypography(px, w);
+            }
+            updateVisibility();
+            saveSettings();
+          });
+
+          settingsToggleBtn.addEventListener("click", () => {
+            settingsCollapsed = !settingsCollapsed;
+            updateVisibility();
+            saveSettings();
+          });
+
+          familyEl.addEventListener("change", () => {
+            applyFamily(familyEl.value);
+            saveSettings();
+            fitAll();
+          });
+
+          // Dropdown Event-Handler
+          if (separatorEl)
+            separatorEl.addEventListener("change", () => {
+              parseInput();
+              saveSettings();
+            });
+
+          storySelectEl.addEventListener("change", () => {
+            const story = getStoryById(storySelectEl.value);
+            if (!story) {
+              selectedStoryId = null;
+              updateStoryLibraryUi();
+              saveSettings();
+              if (statusEl) statusEl.textContent = "Keine Geschichte ausgewaehlt.";
+              return;
+            }
+
+            loadStoryIntoInput(story);
+          });
+
+          uploadStoryBtn.addEventListener("click", () => {
+            if (!storyFileInputEl) return;
+            storyFileInputEl.value = "";
+            storyFileInputEl.click();
+          });
+
+          saveStoryBtn.addEventListener("click", () => {
+            saveCurrentInputAsStory();
+          });
+
+          shareStoryBtn.addEventListener("click", () => {
+            void exportCurrentStory();
+          });
+
+          storyFileInputEl.addEventListener("change", async () => {
+            const file = storyFileInputEl.files && storyFileInputEl.files[0];
+            if (!file) return;
+
+            const originalButtonLabel = uploadStoryBtn.textContent;
+            uploadStoryBtn.disabled = true;
+            uploadStoryBtn.textContent = "Laedt...";
+
+            try {
+              const rawText = await readStoryFileAsText(file);
+              const content = String(rawText || "").replace(/\r\n?/g, "\n");
+              if (!content.trim()) {
+                alert("Die ausgewaehlte Textdatei ist leer.");
+                return;
+              }
+
+              const suggestedName = baseStoryNameFromFile(file.name);
+              const requestedName = window.prompt(
+                "Name fuer die Geschichte:",
+                suggestedName,
+              );
+              if (requestedName === null) return;
+
+              const finalName = buildUniqueStoryName(
+                normalizeStoryName(requestedName, suggestedName),
+              );
+              const story = {
+                id: createStoryId(),
+                name: finalName,
+                content,
+                fileName: String(file.name || "").trim(),
+                updatedAt: new Date().toISOString(),
+              };
+
+              stories = sortStoriesByName([...stories, story]);
+              loadStoryIntoInput(story);
+              if (statusEl) statusEl.textContent = `Geschichte importiert: ${finalName}`;
+            } catch (error) {
+              console.warn("Geschichte konnte nicht importiert werden:", error);
+              alert(
+                `Die Textdatei konnte nicht gelesen werden: ${error.message || error}`,
+              );
+            } finally {
+              uploadStoryBtn.disabled = false;
+              uploadStoryBtn.textContent = originalButtonLabel;
+              storyFileInputEl.value = "";
+            }
+          });
+
+          deleteStoryBtn.addEventListener("click", () => {
+            const story = getStoryById(selectedStoryId || storySelectEl.value);
+            if (!story) return;
+
+            const shouldDelete = window.confirm(
+              `Geschichte "${story.name}" wirklich loeschen?`,
+            );
+            if (!shouldDelete) return;
+
+            stories = stories.filter((entry) => entry.id !== story.id);
+            if (selectedStoryId === story.id) {
+              selectedStoryId = null;
+            }
+            updateStoryLibraryUi();
+            saveSettings();
+            if (statusEl) statusEl.textContent = `Geschichte geloescht: ${story.name}`;
+          });
+
+          startBtn.addEventListener("click", () => start(true));
+          stopBtn.addEventListener("click", stop);
+          prevBtn.addEventListener("click", prevNow);
+          pauseBtn.addEventListener("click", togglePause);
+          nextBtn.addEventListener("click", nextNow);
+
+          ovStart.addEventListener("click", () => start(false));
+          ovStop.addEventListener("click", stop);
+          ovPrevBtn.addEventListener("click", prevNow);
+          ovPauseBtn.addEventListener("click", togglePause);
+          ovNextBtn.addEventListener("click", nextNow);
+
+          clearBtn.addEventListener("click", () => {
+            inputEl.value = "";
+            parseInput();
+            syncSelectedStoryToCurrentInput();
+            saveSettings();
+            if (statusEl) statusEl.textContent = "Text geleert.";
+            inputEl.focus();
+            fitAll();
+          });
+          textResetBtn.addEventListener("click", () => {
+            if (sentenceModeEl.checked) {
+              inputEl.value = DEFAULT_STORY;
+            } else {
+              inputEl.value = DEFAULT_WORDS.join(", ");
+            }
+            parseInput();
+            syncSelectedStoryToCurrentInput();
+            saveSettings();
+            if (statusEl) statusEl.textContent = "Text auf Standard gesetzt.";
+            fitAll();
+          });
+          resetBtn.addEventListener("click", () => {
+            const defaultWeight = computeAutoWeight(DEFAULT_SIZE);
+            const defaultModeEl = document.querySelector(
+              `input[name="mode"][value="${DEFAULT_MODE}"]`,
+            );
+            if (defaultModeEl) defaultModeEl.checked = true;
+            if (loopEl) loopEl.checked = DEFAULT_LOOP;
+            const trimEl = $("#trim");
+            if (trimEl) trimEl.checked = DEFAULT_TRIM;
+            intervalEl.value = String(DEFAULT_INTERVAL);
+            intervalRangeEl.value = String(DEFAULT_INTERVAL);
+            const intervalVal = $("#intervalVal");
+            if (intervalVal) intervalVal.textContent = `${DEFAULT_INTERVAL}s`;
+            sizeEl.value = String(DEFAULT_SIZE);
+            if (sizeValEl) sizeValEl.textContent = `${DEFAULT_SIZE}px`;
+            weightEl.value = String(defaultWeight);
+            if (weightValEl) weightValEl.textContent = String(defaultWeight);
+            if (autoWeightEl) autoWeightEl.checked = true;
+            autoCalib.baseSize = null;
+            autoCalib.delta = 0;
+            if (familyEl) familyEl.value = DEFAULT_FAMILY;
+            if (separatorEl) separatorEl.value = DEFAULT_SEPARATOR;
+            settingsCollapsed = true;
+            applyTypography(DEFAULT_SIZE, defaultWeight);
+            updateVisibility();
+            parseInput();
+            saveSettings();
+            if (running) start(false);
+            if (statusEl)
+              statusEl.textContent =
+                "Einstellungen auf Standardwerte zurueckgesetzt.";
+            fitAll();
+          });
+
+          window.addEventListener("beforeunload", saveSettings);
+          window.addEventListener("resize", () => {
+            fitAll();
+            updateOverlayLayout();
+          });
+          document.addEventListener("fullscreenchange", updateOverlayLayout);
+          window.addEventListener("orientationchange", updateOverlayLayout);
+          document.addEventListener("keydown", (e) => {
+            if (document.activeElement === inputEl) return;
+            if (e.code === "Space") {
+              e.preventDefault();
+              running ? stop() : start(true);
+            } else if (e.code === "ArrowRight") {
+              e.preventDefault();
+              nextNow();
+            } else if (e.code === "ArrowLeft") {
+              e.preventDefault();
+              prevNow();
+            } else if (e.code === "Escape") {
+              if (!overlayEl.classList.contains("hidden")) {
+                e.preventDefault();
+                stop();
+              }
+              if (!manualEl.classList.contains("hidden")) {
+                e.preventDefault();
+                closeManual();
+              }
+            }
+          });
+
+          // Handbuch öffnen/schließen
+          function openManual() {
+            if (manualEl) {
+              manualEl.classList.remove("hidden");
+              manualEl.setAttribute("aria-hidden", "false");
+              history.pushState({ manual: true }, "", "#handbuch");
+            }
+          }
+          function closeManual() {
+            if (manualEl) {
+              manualEl.classList.add("hidden");
+              manualEl.setAttribute("aria-hidden", "true");
+              if (location.hash === "#handbuch") {
+                try {
+                  history.back();
+                } catch (e) {}
+              }
+            }
+          }
+          helpOpen.addEventListener("click", openManual);
+          helpOpen.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              openManual();
+            }
+          });
+          manualClose.addEventListener("click", closeManual);
+          manualEl.addEventListener("click", (e) => {
+            if (e.target === manualEl) closeManual();
+          });
+          window.addEventListener("popstate", () => {
+            if (
+              location.hash !== "#handbuch" &&
+              !manualEl.classList.contains("hidden")
+            )
+              closeManual();
+          });
+          exportHtmlBtn.addEventListener("click", exportBundledIndexHtml);
+          if (installBtn) {
+            installBtn.addEventListener("click", async () => {
+              if (!deferredPrompt) {
+                updateInstallUi();
+                return;
+              }
+
+              try {
+                await deferredPrompt.prompt();
+                await deferredPrompt.userChoice;
+              } catch (e) {
+                console.warn("Installationsdialog fehlgeschlagen:", e);
+              } finally {
+                deferredPrompt = null;
+                updateInstallUi();
+              }
+            });
+          }
+
+          // Init
+          migrateOld();
+          const loaded = loadSettings();
+          applySettings(loaded);
+          parseInput();
+          (function forceCloseOverlayOnLoad() {
+            if (!overlayEl) return;
+            overlayEl.classList.add("hidden");
+            overlayEl.setAttribute("aria-hidden", "true");
+            document.documentElement.style.overflow = "";
+            try {
+              if (location.hash === "#lesen") {
+                history.replaceState(
+                  null,
+                  "",
+                  location.pathname + location.search,
+                );
+              }
+            } catch (e) {}
+          })();
+          updateOverlayLayout();
+          updateBundledIndexHtmlExportVisibility();
+          syncKnownInstalledWebVersion();
+          updateInstallUi();
+          registerBrowserServiceWorker();
+          if (!loaded) {
+            saveSettings();
+          }
+
+          // Tests (Konsolenhinweise)
+          (function runSmoke() {
+            const ok = (n, c) =>
+              console[c ? "log" : "warn"](c ? "✅" : "❌", n);
+            ok("splitWords>0", splitWords(DEFAULT_WORDS.join(", ")).length > 0);
+            ok("splitSentences>0", splitSentences(DEFAULT_STORY).length > 0);
+          })();
+        };
+
+        if (document.readyState === "loading")
+          document.addEventListener("DOMContentLoaded", onReady);
+        else onReady();
+      })();
+    </script>
+    <footer class="footer-note" data-app-version="42">
+      <span class="footer-name" role="button" tabindex="0"
+        >❤️ Isabella Bachner ❤️</span
+      >
+    </footer>
+  </body>
+</html>

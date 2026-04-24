@@ -685,6 +685,9 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             <button class="btn" id="saveStoryBtn" type="button">
               Text speichern
             </button>
+            <button class="btn" id="shareStoryBtn" type="button" disabled>
+              Geschichte exportieren
+            </button>
             <button class="btn" id="deleteStoryBtn" type="button" disabled>
               Geschichte loeschen
             </button>
@@ -881,6 +884,11 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             eine <code>.txt</code>-Datei.
           </li>
           <li>
+            <strong>Geschichte weitergeben:</strong> Mit
+            <em>Geschichte exportieren</em> öffnest du je nach Gerät den
+            Teilen-Dialog oder erhältst eine exportierte <code>.txt</code>-Datei.
+          </li>
+          <li>
             <strong>Start:</strong> Klick auf <em>Start</em> → echter
             Vollbildmodus, die Anzeige läuft automatisch.
           </li>
@@ -1004,6 +1012,13 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             Anzeige bei laufender Wiedergabe mit dem geladenen Inhalt neu.
           </li>
           <li>
+            <strong>Geschichte exportieren:</strong> Gibt die aktuelle
+            Geschichte oder den aktuellen Eingabetext als <code>.txt</code>
+            weiter. In der Android-App öffnet sich der System-Teilen-Dialog,
+            in unterstützten Browsern die Web-Share-Freigabe, sonst ein
+            normaler Datei-Download.
+          </li>
+          <li>
             <strong>Geschichte löschen:</strong> Entfernt nur die aktuell
             ausgewählte Geschichte nach einer Sicherheitsabfrage.
           </li>
@@ -1085,6 +1100,12 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             gespeicherten Geschichten in die Exportdatei eingebettet.
           </li>
           <li>
+            <strong>Geschichten-Export:</strong> Der Button
+            <em>Geschichte exportieren</em> nutzt bevorzugt den
+            Standard-Teilen-Dialog, damit du Inhalte direkt an WhatsApp,
+            Telegram oder andere Apps weitergeben kannst.
+          </li>
+          <li>
             <strong>App installieren / aktualisieren:</strong> In der
             Browser-/PWA-Version blendet die App je nach Gerät einen
             Installations- oder Aktualisierungshinweis ein. Bereits bekannte
@@ -1149,6 +1170,12 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             Diese Bereiche erscheinen nur in passenden Umgebungen. Der
             HTML-Export steckt zusätzlich in den eingeklappten
             <em>Programm‑Einstellungen</em>.
+          </li>
+          <li>
+            <strong>Wie gebe ich eine Geschichte an WhatsApp oder Telegram weiter?</strong>
+            Über <em>Geschichte exportieren</em>. In der Android-App wird der
+            System-Teilen-Dialog geöffnet. In Browsern klappt es über die
+            Web-Share-Funktion oder notfalls über eine exportierte Datei.
           </li>
           <li>
             <strong>Wird etwas online gespeichert?</strong> Nein, ausschließlich
@@ -1244,6 +1271,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           const storySelectEl = need("#storySelect", "storySelect");
           const uploadStoryBtn = need("#uploadStoryBtn", "uploadStoryBtn");
           const saveStoryBtn = need("#saveStoryBtn", "saveStoryBtn");
+          const shareStoryBtn = need("#shareStoryBtn", "shareStoryBtn");
           const deleteStoryBtn = need("#deleteStoryBtn", "deleteStoryBtn");
           const storyFileInputEl = need("#storyFileInput", "storyFileInput");
           const storyLibraryHintEl = $("#storyLibraryHint");
@@ -1266,7 +1294,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             "wortabspieler.installedWebVersion";
           const TIMER_LABEL = "Lesezeit";
           const HTML_EXPORT_STATUS_MS = 3600;
-          const SW_VERSION = "blitzlesen-isabella-v40";
+          const SW_VERSION = "blitzlesen-isabella-v42";
           const DEFAULT_MODE = "sequential";
           const DEFAULT_INTERVAL = 0.5;
           const DEFAULT_SIZE = 28;
@@ -1300,6 +1328,27 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
               typeof URL.createObjectURL === "function",
             );
             return hasNativeAndroidExport || hasBrowserFallback;
+          }
+
+          function supportsTextDownload() {
+            return Boolean(
+              typeof Blob !== "undefined" &&
+                typeof URL !== "undefined" &&
+                typeof URL.createObjectURL === "function",
+            );
+          }
+
+          function supportsStoryExport() {
+            const androidBridge = getAndroidBridge();
+            const hasNativeAndroidShare = Boolean(
+              androidBridge &&
+                typeof androidBridge.shareTextFile === "function",
+            );
+            const hasWebShareApi = Boolean(
+              typeof navigator !== "undefined" &&
+                typeof navigator.share === "function",
+            );
+            return hasNativeAndroidShare || hasWebShareApi || supportsTextDownload();
           }
 
           function updateBundledIndexHtmlExportVisibility() {
@@ -1824,7 +1873,11 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             return response.text();
           }
 
-          function downloadTextFileRobust(filename, textContent) {
+          function downloadTextFileRobust(
+            filename,
+            textContent,
+            mimeType = "text/plain;charset=utf-8",
+          ) {
             const safeFilename = String(filename || "").trim() || "index.html";
             const safeText =
               typeof textContent === "string"
@@ -1841,7 +1894,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
 
             try {
               const blob = new Blob([safeText], {
-                type: "text/html;charset=utf-8",
+                type: mimeType,
               });
               const blobUrl = URL.createObjectURL(blob);
               const link = document.createElement("a");
@@ -1860,6 +1913,102 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
               console.warn("Browser-Download fehlgeschlagen:", e);
               return false;
             }
+          }
+
+          function getCurrentStoryExportPayload() {
+            const content = String(inputEl?.value || "").replace(/\r\n?/g, "\n");
+            if (!content.trim()) return null;
+
+            const selectedStory = getStoryById(selectedStoryId);
+            const selectedStoryContent = selectedStory
+              ? String(selectedStory.content || "").replace(/\r\n?/g, "\n")
+              : "";
+            const exactSelectedStory =
+              selectedStory && selectedStoryContent === content
+                ? selectedStory
+                : null;
+            const inferredName = normalizeStoryName(
+              exactSelectedStory?.name || suggestStoryNameFromText(content),
+              "Neue Geschichte",
+            );
+            const fileName =
+              exactSelectedStory?.fileName || buildStoryFileNameFromName(inferredName);
+
+            return {
+              name: inferredName,
+              fileName,
+              content,
+            };
+          }
+
+          async function shareTextFileRobust(
+            filename,
+            textContent,
+            { title = "" } = {},
+          ) {
+            const safeFilename = String(filename || "").trim() || "export.txt";
+            const safeText =
+              typeof textContent === "string"
+                ? textContent
+                : String(textContent ?? "");
+            const shareTitle = String(title || safeFilename).trim() || safeFilename;
+            const androidBridge = getAndroidBridge();
+
+            if (
+              androidBridge &&
+              typeof androidBridge.shareTextFile === "function"
+            ) {
+              androidBridge.shareTextFile(safeFilename, safeText);
+              return { ok: true, mode: "native-share" };
+            }
+
+            if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+              if (typeof File !== "undefined") {
+                try {
+                  const shareFile = new File([safeText], safeFilename, {
+                    type: "text/plain;charset=utf-8",
+                  });
+                  if (
+                    typeof navigator.canShare !== "function" ||
+                    navigator.canShare({ files: [shareFile] })
+                  ) {
+                    await navigator.share({
+                      title: shareTitle,
+                      text: `Geschichte: ${shareTitle}`,
+                      files: [shareFile],
+                    });
+                    return { ok: true, mode: "web-share-file" };
+                  }
+                } catch (error) {
+                  if (error?.name === "AbortError") {
+                    return { ok: false, mode: "cancelled", cancelled: true };
+                  }
+                  console.warn("Datei-Teilen fehlgeschlagen, nutze Text-Fallback:", error);
+                }
+              }
+
+              try {
+                await navigator.share({
+                  title: shareTitle,
+                  text: safeText,
+                });
+                return { ok: true, mode: "web-share-text" };
+              } catch (error) {
+                if (error?.name === "AbortError") {
+                  return { ok: false, mode: "cancelled", cancelled: true };
+                }
+                console.warn("Text-Teilen fehlgeschlagen:", error);
+              }
+            }
+
+            const downloaded = downloadTextFileRobust(
+              safeFilename,
+              safeText,
+              "text/plain;charset=utf-8",
+            );
+            return downloaded
+              ? { ok: true, mode: "download" }
+              : { ok: false, mode: "unsupported" };
           }
 
           function pushExportStatus(message) {
@@ -1887,7 +2036,11 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             try {
               const htmlText = await getBundledIndexHtmlText();
               const portableHtml = embedPortableAppStateIntoHtml(htmlText);
-              const ok = downloadTextFileRobust(fileName, portableHtml);
+              const ok = downloadTextFileRobust(
+                fileName,
+                portableHtml,
+                "text/html;charset=utf-8",
+              );
               if (!ok) {
                 throw new Error("Download rueckgabewert war false");
               }
@@ -2158,8 +2311,13 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
 
             storySelectEl.disabled = sortedStories.length === 0;
             storySelectEl.value = selectedStory ? selectedStory.id : "";
+            const hasInputText = !!String(inputEl?.value || "").trim();
             if (saveStoryBtn) {
-              saveStoryBtn.disabled = !String(inputEl?.value || "").trim();
+              saveStoryBtn.disabled = !hasInputText;
+            }
+            if (shareStoryBtn) {
+              shareStoryBtn.disabled =
+                !hasInputText || !supportsStoryExport();
             }
             if (deleteStoryBtn) deleteStoryBtn.disabled = !selectedStory;
 
@@ -2239,6 +2397,47 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
               statusEl.textContent = `Geschichte gespeichert: ${finalName}`;
             }
             return story;
+          }
+
+          async function exportCurrentStory() {
+            if (!shareStoryBtn || shareStoryBtn.disabled) return;
+
+            const payload = getCurrentStoryExportPayload();
+            if (!payload) {
+              pushExportStatus("Bitte zuerst einen Text oder eine Geschichte eingeben.");
+              updateStoryLibraryUi();
+              return;
+            }
+
+            const originalLabel = shareStoryBtn.textContent;
+            shareStoryBtn.disabled = true;
+            shareStoryBtn.classList.add("is-busy");
+            shareStoryBtn.textContent = "Exportiere...";
+
+            try {
+              const result = await shareTextFileRobust(payload.fileName, payload.content, {
+                title: payload.name,
+              });
+
+              if (result.ok) {
+                if (result.mode === "download") {
+                  pushExportStatus(`Geschichte exportiert: ${payload.fileName}`);
+                } else {
+                  pushExportStatus(`Teilen geoeffnet: ${payload.name}`);
+                }
+              } else if (result.cancelled) {
+                pushExportStatus("Teilen abgebrochen.");
+              } else {
+                pushExportStatus("Geschichten-Export ist hier nicht verfuegbar.");
+              }
+            } catch (error) {
+              console.warn("Geschichte konnte nicht exportiert werden:", error);
+              pushExportStatus("Geschichten-Export fehlgeschlagen.");
+            } finally {
+              shareStoryBtn.classList.remove("is-busy");
+              shareStoryBtn.textContent = originalLabel;
+              updateStoryLibraryUi();
+            }
           }
 
           function loadStoryIntoInput(story, { shouldSave = true } = {}) {
@@ -3101,6 +3300,10 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             saveCurrentInputAsStory();
           });
 
+          shareStoryBtn.addEventListener("click", () => {
+            void exportCurrentStory();
+          });
+
           storyFileInputEl.addEventListener("change", async () => {
             const file = storyFileInputEl.files && storyFileInputEl.files[0];
             if (!file) return;
@@ -3365,7 +3568,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         else onReady();
       })();
     </script>
-    <footer class="footer-note" data-app-version="40">
+    <footer class="footer-note" data-app-version="42">
       <span class="footer-name" role="button" tabindex="0"
         >❤️ Isabella Bachner ❤️</span
       >
