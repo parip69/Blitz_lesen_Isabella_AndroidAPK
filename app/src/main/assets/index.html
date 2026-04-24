@@ -682,6 +682,9 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             <button class="btn" id="uploadStoryBtn" type="button">
               Geschichte hochladen
             </button>
+            <button class="btn" id="saveStoryBtn" type="button">
+              Text speichern
+            </button>
             <button class="btn" id="deleteStoryBtn" type="button" disabled>
               Geschichte loeschen
             </button>
@@ -951,6 +954,10 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             Textdatei (<code>.txt</code>) in die lokale Geschichtenliste.
           </li>
           <li>
+            <strong>Text speichern:</strong> Speichert den aktuell eingefuegten
+            oder hineinkopierten Text aus dem Eingabefeld als neue Geschichte.
+          </li>
+          <li>
             <strong>Geschichte auswaehlen:</strong> Laedt den gespeicherten Text
             direkt ins Eingabefeld und aktiviert den Satzmodus.
           </li>
@@ -1128,6 +1135,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
           const installHint = $("#installHint");
           const storySelectEl = need("#storySelect", "storySelect");
           const uploadStoryBtn = need("#uploadStoryBtn", "uploadStoryBtn");
+          const saveStoryBtn = need("#saveStoryBtn", "saveStoryBtn");
           const deleteStoryBtn = need("#deleteStoryBtn", "deleteStoryBtn");
           const storyFileInputEl = need("#storyFileInput", "storyFileInput");
           const storyLibraryHintEl = $("#storyLibraryHint");
@@ -1150,7 +1158,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             "wortabspieler.installedWebVersion";
           const TIMER_LABEL = "Lesezeit";
           const HTML_EXPORT_STATUS_MS = 3600;
-          const SW_VERSION = "blitzlesen-isabella-v37";
+          const SW_VERSION = "blitzlesen-isabella-v38";
           const DEFAULT_MODE = "sequential";
           const DEFAULT_INTERVAL = 0.5;
           const DEFAULT_SIZE = 28;
@@ -1911,6 +1919,33 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             );
           }
 
+          function buildStoryFileNameFromName(name) {
+            const safeBase = sanitizeFilenamePart(name) || "Neue Geschichte";
+            return safeBase.toLowerCase().endsWith(".txt")
+              ? safeBase
+              : `${safeBase}.txt`;
+          }
+
+          function suggestStoryNameFromText(content) {
+            const selectedStory = getStoryById(selectedStoryId);
+            if (selectedStory && selectedStory.name) {
+              return selectedStory.name;
+            }
+
+            const firstMeaningfulLine = String(content || "")
+              .split(/\n+/)
+              .map((line) => line.trim())
+              .find(Boolean);
+
+            if (!firstMeaningfulLine) return "Neue Geschichte";
+
+            const shortened =
+              firstMeaningfulLine.length > 60
+                ? `${firstMeaningfulLine.slice(0, 57).trim()}...`
+                : firstMeaningfulLine;
+            return normalizeStoryName(shortened, "Neue Geschichte");
+          }
+
           function sortStoriesByName(items) {
             return [...items].sort((left, right) =>
               String(left.name || "").localeCompare(String(right.name || ""), "de", {
@@ -2015,6 +2050,9 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
 
             storySelectEl.disabled = sortedStories.length === 0;
             storySelectEl.value = selectedStory ? selectedStory.id : "";
+            if (saveStoryBtn) {
+              saveStoryBtn.disabled = !String(inputEl?.value || "").trim();
+            }
             if (deleteStoryBtn) deleteStoryBtn.disabled = !selectedStory;
 
             if (storyLibraryHintEl) {
@@ -2060,6 +2098,39 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
                 reject(reader.error || new Error("Datei konnte nicht gelesen werden."));
               reader.readAsText(file);
             });
+          }
+
+          function saveCurrentInputAsStory() {
+            const content = String(inputEl?.value || "").replace(/\r\n?/g, "\n");
+            if (!content.trim()) {
+              alert("Bitte zuerst einen Text in das Eingabefeld einfuegen.");
+              return null;
+            }
+
+            const suggestedName = suggestStoryNameFromText(content);
+            const requestedName = window.prompt(
+              "Name fuer die Geschichte:",
+              suggestedName,
+            );
+            if (requestedName === null) return null;
+
+            const finalName = buildUniqueStoryName(
+              normalizeStoryName(requestedName, suggestedName),
+            );
+            const story = {
+              id: createStoryId(),
+              name: finalName,
+              content,
+              fileName: buildStoryFileNameFromName(finalName),
+              updatedAt: new Date().toISOString(),
+            };
+
+            stories = sortStoriesByName([...stories, story]);
+            loadStoryIntoInput(story);
+            if (statusEl) {
+              statusEl.textContent = `Geschichte gespeichert: ${finalName}`;
+            }
+            return story;
           }
 
           function loadStoryIntoInput(story, { shouldSave = true } = {}) {
@@ -2918,6 +2989,10 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
             storyFileInputEl.click();
           });
 
+          saveStoryBtn.addEventListener("click", () => {
+            saveCurrentInputAsStory();
+          });
+
           storyFileInputEl.addEventListener("change", async () => {
             const file = storyFileInputEl.files && storyFileInputEl.files[0];
             if (!file) return;
@@ -3182,7 +3257,7 @@ GitHub-Repository: https://github.com/parip69/Blitz_lesen_Isabella.git
         else onReady();
       })();
     </script>
-    <footer class="footer-note" data-app-version="37">
+    <footer class="footer-note" data-app-version="38">
       <span class="footer-name" role="button" tabindex="0"
         >❤️ Isabella Bachner ❤️</span
       >
